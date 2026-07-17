@@ -35,3 +35,10 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Local Spring profile configuration ###
+src/main/resources/application-dev.yml
+src/main/resources/application-prod.yml
+
+src/main/resources/db/dev
+docs
