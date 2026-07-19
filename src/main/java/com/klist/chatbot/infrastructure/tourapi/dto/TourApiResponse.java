@@ -1,6 +1,7 @@
 package com.klist.chatbot.infrastructure.tourapi.dto;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
 
@@ -34,6 +35,7 @@ public record TourApiResponse<T>(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Items<T>(
+            @JsonFormat(with = JsonFormat.Feature.ACCEPT_SINGLE_VALUE_AS_ARRAY)
             @JsonProperty("item") List<T> item
     ) {
     }

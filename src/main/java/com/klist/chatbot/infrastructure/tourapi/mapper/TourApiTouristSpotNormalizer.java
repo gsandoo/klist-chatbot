@@ -1,6 +1,7 @@
 package com.klist.chatbot.infrastructure.tourapi.mapper;
 
 import com.klist.chatbot.infrastructure.tourapi.dto.TourApiAreaBasedListItem;
+import com.klist.chatbot.infrastructure.tourapi.dto.TourApiCodeItem;
 import com.klist.chatbot.infrastructure.tourapi.dto.TourApiDetailCommonItem;
 import com.klist.chatbot.infrastructure.tourapi.dto.TourApiDetailImageItem;
 import com.klist.chatbot.infrastructure.tourapi.dto.TourApiDetailIntroItem;
@@ -16,6 +17,16 @@ public class TourApiTouristSpotNormalizer {
             TourApiDetailCommonItem commonItem,
             TourApiDetailIntroItem introItem,
             TourApiDetailImageItem imageItem
+    ) {
+        return normalize(listItem, commonItem, introItem, imageItem, null);
+    }
+
+    public TourApiMappingResult<TouristSpotImportData> normalize(
+            TourApiAreaBasedListItem listItem,
+            TourApiDetailCommonItem commonItem,
+            TourApiDetailIntroItem introItem,
+            TourApiDetailImageItem imageItem,
+            TourApiCodeItem regionCodeItem
     ) {
         List<TourApiMappingIssue> issues = new ArrayList<>();
         Long contentId = requiredLong(listItem == null ? null : listItem.contentid(),
@@ -89,8 +100,12 @@ public class TourApiTouristSpotNormalizer {
                 clean(listItem == null ? null : listItem.cat1()),
                 clean(listItem == null ? null : listItem.cat2()),
                 clean(listItem == null ? null : listItem.cat3()),
+                clean(listItem == null ? null : listItem.lclsSystm1()),
+                clean(listItem == null ? null : listItem.lclsSystm2()),
+                clean(listItem == null ? null : listItem.lclsSystm3()),
                 clean(listItem == null ? null : listItem.areacode()),
                 clean(listItem == null ? null : listItem.sigungucode()),
+                clean(regionCodeItem == null ? null : regionCodeItem.name()),
                 clean(listItem == null ? null : listItem.lDongRegnCd()),
                 clean(listItem == null ? null : listItem.lDongSignguCd())
         );

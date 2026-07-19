@@ -25,8 +25,12 @@ public record TouristSpotImportData(
         String largeCategoryCode,
         String middleCategoryCode,
         String smallCategoryCode,
+        String largeClassificationSystemCode,
+        String middleClassificationSystemCode,
+        String smallClassificationSystemCode,
         String areaCode,
         String sigunguCode,
+        String regionName,
         String legalDongRegionCode,
         String legalDongSigunguCode
 ) {
