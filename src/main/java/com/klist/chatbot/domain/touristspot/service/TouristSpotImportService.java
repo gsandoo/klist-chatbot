@@ -1,9 +1,9 @@
 package com.klist.chatbot.domain.touristspot.service;
 
-import com.klist.chatbot.domain.category.domain.entity.Category;
-import com.klist.chatbot.domain.category.repository.CategoryRepository;
-import com.klist.chatbot.domain.region.domain.entity.Region;
-import com.klist.chatbot.domain.region.repository.RegionRepository;
+import com.klist.chatbot.domain.category.service.CategoryPersistenceResolver;
+import com.klist.chatbot.domain.category.service.result.CategoryResolution;
+import com.klist.chatbot.domain.region.service.RegionPersistenceResolver;
+import com.klist.chatbot.domain.region.service.result.RegionResolution;
 import com.klist.chatbot.domain.touristspot.domain.entity.TouristSpot;
 import com.klist.chatbot.domain.touristspot.repository.TouristSpotRepository;
 import com.klist.chatbot.domain.touristspot.service.result.TouristSpotImportResult;
@@ -24,8 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class TouristSpotImportService {
 
-    private final CategoryRepository categoryRepository;
-    private final RegionRepository regionRepository;
+    private final CategoryPersistenceResolver categoryPersistenceResolver;
+    private final RegionPersistenceResolver regionPersistenceResolver;
     private final TouristSpotRepository touristSpotRepository;
 
     @Transactional
@@ -186,57 +186,29 @@ public class TouristSpotImportService {
     }
 
     private CategoryResolution resolveCategory(TouristSpotImportData data, List<String> warnings) {
-        if (data.contentTypeId() == null || data.smallCategoryCode() == null) {
-            warnings.add("Category code is missing. Existing category relation will be kept when updating.");
-            return CategoryResolution.unresolved();
+        CategoryResolution resolution = categoryPersistenceResolver.resolve(
+                data.contentTypeId(),
+                data.largeCategoryCode(),
+                data.middleCategoryCode(),
+                data.smallCategoryCode(),
+                null
+        );
+        if (resolution.warning() != null) {
+            warnings.add(resolution.warning());
         }
-        return categoryRepository.findByContentTypeIdAndSmallCategoryCode(data.contentTypeId(), data.smallCategoryCode())
-                .map(category -> {
-                    category.updateNameIfPresent(null);
-                    return CategoryResolution.resolved(category.getId());
-                })
-                .orElseGet(() -> createCategoryIfPossible(data, warnings));
-    }
-
-    private CategoryResolution createCategoryIfPossible(TouristSpotImportData data, List<String> warnings) {
-        if (data.largeCategoryCode() == null || data.middleCategoryCode() == null || data.smallCategoryCode() == null) {
-            warnings.add("Category was not created because category hierarchy codes are incomplete.");
-            return CategoryResolution.unresolved();
-        }
-        Category category = Category.builder()
-                .contentTypeId(data.contentTypeId())
-                .largeCategoryCode(data.largeCategoryCode())
-                .middleCategoryCode(data.middleCategoryCode())
-                .smallCategoryCode(data.smallCategoryCode())
-                .categoryName(null)
-                .build();
-        Category saved = categoryRepository.save(category);
-        return CategoryResolution.resolved(saved.getId());
+        return resolution;
     }
 
     private RegionResolution resolveRegion(TouristSpotImportData data, List<String> warnings) {
-        if (data.areaCode() == null) {
-            warnings.add("Region areaCode is missing. Existing region relation will be kept when updating.");
-            return RegionResolution.unresolved();
+        RegionResolution resolution = regionPersistenceResolver.resolve(
+                data.areaCode(),
+                data.sigunguCode(),
+                data.regionName()
+        );
+        if (resolution.warning() != null) {
+            warnings.add(resolution.warning());
         }
-        return regionRepository.findByAreaCodeAndSigunguCode(data.areaCode(), data.sigunguCode())
-                .map(region -> RegionResolution.resolved(region.getId()))
-                .orElseGet(() -> createRegionIfPossible(data, warnings));
-    }
-
-    private RegionResolution createRegionIfPossible(TouristSpotImportData data, List<String> warnings) {
-        if (data.regionName() == null) {
-            warnings.add("Region was not created because region name is missing.");
-            return RegionResolution.unresolved();
-        }
-        Region region = Region.builder()
-                .areaCode(data.areaCode())
-                .sigunguCode(data.sigunguCode())
-                .regionName(data.regionName())
-                .parentRegionCode(data.sigunguCode() == null ? null : data.areaCode())
-                .build();
-        Region saved = regionRepository.save(region);
-        return RegionResolution.resolved(saved.getId());
+        return resolution;
     }
 
     private TouristSpotImportStatus validateRequiredFields(TouristSpotImportData data) {
@@ -275,25 +247,4 @@ public class TouristSpotImportService {
         return warnings;
     }
 
-    private record CategoryResolution(Long id, boolean resolved) {
-
-        static CategoryResolution resolved(Long id) {
-            return new CategoryResolution(id, true);
-        }
-
-        static CategoryResolution unresolved() {
-            return new CategoryResolution(null, false);
-        }
-    }
-
-    private record RegionResolution(Long id, boolean resolved) {
-
-        static RegionResolution resolved(Long id) {
-            return new RegionResolution(id, true);
-        }
-
-        static RegionResolution unresolved() {
-            return new RegionResolution(null, false);
-        }
-    }
 }

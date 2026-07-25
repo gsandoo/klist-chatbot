@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.klist.chatbot.domain.category.domain.entity.Category;
 import com.klist.chatbot.domain.category.repository.CategoryRepository;
 import com.klist.chatbot.domain.category.repository.CategoryRepositoryImpl;
+import com.klist.chatbot.domain.category.service.CategoryPersistenceResolver;
 import com.klist.chatbot.domain.region.domain.entity.Region;
 import com.klist.chatbot.domain.region.repository.RegionRepository;
 import com.klist.chatbot.domain.region.repository.RegionRepositoryImpl;
+import com.klist.chatbot.domain.region.service.RegionPersistenceResolver;
 import com.klist.chatbot.domain.touristspot.domain.entity.TouristSpot;
 import com.klist.chatbot.domain.touristspot.repository.TouristSpotRepository;
 import com.klist.chatbot.domain.touristspot.repository.TouristSpotRepositoryImpl;
@@ -34,7 +36,9 @@ import org.springframework.context.annotation.Import;
 @Import({
         JpaAuditingConfig.class,
         CategoryRepositoryImpl.class,
+        CategoryPersistenceResolver.class,
         RegionRepositoryImpl.class,
+        RegionPersistenceResolver.class,
         TouristSpotRepositoryImpl.class,
         TouristSpotImportService.class
 })
@@ -129,8 +133,8 @@ class TouristSpotImportServiceTest {
                 .lastSyncedAt(LocalDateTime.of(2026, 1, 1, 0, 0))
                 .build());
         TouristSpotImportService service = new TouristSpotImportService(
-                new NoopCategoryRepository(),
-                new NoopRegionRepository(),
+                new CategoryPersistenceResolver(new NoopCategoryRepository()),
+                new RegionPersistenceResolver(new NoopRegionRepository()),
                 touristSpotRepository
         );
 

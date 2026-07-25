@@ -34,6 +34,8 @@ dependencies {
 	testImplementation 'org.springframework.boot:spring-boot-starter-validation-test'
 	testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
 	testImplementation 'com.fasterxml.jackson.core:jackson-databind'
+	testImplementation 'org.testcontainers:testcontainers-junit-jupiter'
+	testImplementation 'org.testcontainers:testcontainers-postgresql'
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'com.h2database:h2'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
@@ -41,5 +43,22 @@ dependencies {
 }
 
 tasks.named('test') {
-	useJUnitPlatform()
+	useJUnitPlatform {
+		excludeTags 'postgresql'
+	}
+}
+
+tasks.register('postgresqlTest', Test) {
+	description = 'Testcontainers를 사용한 PostgreSQL 통합 테스트를 실행합니다.'
+	group = 'verification'
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath
+	useJUnitPlatform {
+		includeTags 'postgresql'
+	}
+	afterSuite { descriptor, result ->
+		if (descriptor.parent == null && result.testCount > 0 && result.successfulTestCount == 0) {
+			throw new GradleException('PostgreSQL 통합 테스트가 실행되지 않았습니다. Docker 실행 상태를 확인하세요.')
+		}
+	}
 }

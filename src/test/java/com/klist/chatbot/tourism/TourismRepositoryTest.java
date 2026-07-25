@@ -15,19 +15,42 @@ import com.klist.chatbot.domain.touristspot.repository.TouristSpotRepositoryImpl
 import com.klist.chatbot.global.config.JpaAuditingConfig;
 import jakarta.persistence.EntityManager;
 import java.time.LocalDateTime;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.testcontainers.utility.DockerImageName;
 
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({
         JpaAuditingConfig.class,
         CategoryRepositoryImpl.class,
         RegionRepositoryImpl.class,
         TouristSpotRepositoryImpl.class
 })
+@Tag("postgresql")
+@Testcontainers(disabledWithoutDocker = true)
 class TourismRepositoryTest {
+
+    @Container
+    private static final PostgreSQLContainer POSTGRESQL =
+            new PostgreSQLContainer(DockerImageName.parse("postgres:17-alpine"));
+
+    @DynamicPropertySource
+    static void postgresqlProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.datasource.url", POSTGRESQL::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRESQL::getUsername);
+        registry.add("spring.datasource.password", POSTGRESQL::getPassword);
+        registry.add("spring.datasource.driver-class-name", POSTGRESQL::getDriverClassName);
+    }
 
     @Autowired
     private CategoryRepository categoryRepository;

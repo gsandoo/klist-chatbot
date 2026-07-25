@@ -269,3 +269,84 @@ Current Entity and `src/main/resources/db/dev/tour-seed.sql` are aligned for the
 No Entity change is required for the current loader preparation step. A future migration is only needed if the
 project decides to make `Category` source-system aware, store `lclsSystm*` in the `Category` table, or add explicit
 soft-delete/status fields for content that disappears from TourAPI lists.
+
+## 20. Persistence Resolver Policy
+
+`TouristSpotImportService` does not directly reference another domain's Entity or Repository.
+
+- `CategoryPersistenceResolver` owns Category lookup and conditional creation.
+- `RegionPersistenceResolver` owns Region lookup and conditional creation.
+- Both resolvers return an ID-based resolution result so the tourist spot domain does not expose or depend on
+  another domain's Entity.
+- Category is created only when `contentTypeId` and the complete legacy category hierarchy are available. A name
+  is never invented.
+- Region is created only when `areaCode` and a source-provided `regionName` are available. A name is never derived
+  from a code.
+- An unresolved Category or Region produces a warning. Because both FK ID columns are nullable, it does not by
+  itself skip a valid TouristSpot.
+
+## 21. Import Result Status
+
+| Status | Meaning |
+|---|---|
+| `CREATED` | A new TouristSpot was persisted. |
+| `UPDATED` | A newer source record updated the existing TouristSpot. |
+| `SKIPPED_NOT_MODIFIED` | Source timestamps are equal. |
+| `SKIPPED_OLDER_SOURCE` | The incoming source record is older. |
+| `SKIPPED_MISSING_REQUIRED_FIELD` | A required identity, type, or name is missing. |
+| `SKIPPED_MISSING_SOURCE_TIMESTAMP` | The required source modification timestamp is missing. |
+| `SKIPPED_UNSUPPORTED_CONTENT_TYPE` | The content type is not supported by the normalizer. |
+| `FAILED` | Reserved for exceptional persistence or programming failures. |
+
+Normal mapping and freshness skips are returned as results rather than exceptions. Database failures remain
+exceptions and participate in transaction rollback.
+
+## 22. Transaction Boundary
+
+- `importOne` performs lookup, Category/Region resolution, and TouristSpot creation or update in one transaction.
+- `importAll` currently processes its input sequentially in one transaction and aggregates the results.
+- A database exception during `importAll` can roll back the whole import call.
+- Parallel processing, `REQUIRES_NEW`, automatic retry, explicit flush/clear, and bulk insertion are not used.
+- If per-item failure isolation becomes necessary, introduce a separate orchestration Service so calls to
+  transactional `importOne` pass through a Spring proxy instead of relying on self-invocation.
+
+## 23. Database Constraint and Migration Policy
+
+Current uniqueness rules are:
+
+- Category: `UNIQUE(content_type_id, small_category_code)`
+- Region: `UNIQUE(region_code)`, where the derived value is `areaCode` or `areaCode:sigunguCode`
+- TouristSpot: `UNIQUE(tour_api_content_id)`
+
+The derived Region key avoids the normal PostgreSQL behavior that permits multiple null values in a composite
+unique constraint. FK ID fields and optional source fields are nullable; `source_modified_at` is not nullable in
+the current schema. URL columns use `VARCHAR(2048)`, coordinates use `NUMERIC(13,10)`, and long descriptions use
+`TEXT`.
+
+The project does not currently use Flyway or Liquibase. Development uses Hibernate `ddl-auto=update`, while
+production uses `ddl-auto=validate`. The Entity mapping and development seed SQL are aligned, so this step does
+not add a migration. A versioned migration tool is required before production schema changes are deployed.
+
+## 24. External Client Contract and Elasticsearch Handoff
+
+A future TourAPI Client must provide `TourApiMappingResult<TouristSpotImportData>`, not persist raw external DTOs.
+It must preserve mapping issues and must not treat missing remote rows as deletion requests.
+
+Elasticsearch is not called by the persistence Service. Future indexing should run only after a `CREATED` or
+`UPDATED` database transaction commits successfully. Prefer an after-commit event or outbox-style handoff rather
+than making an Elasticsearch call inside the database transaction. Skip results are not indexing triggers.
+
+## 25. PostgreSQL Repository Integration Test
+
+`TourismRepositoryTest` uses Testcontainers PostgreSQL 17 and is tagged `postgresql`.
+
+- `gradlew.bat test`: runs unit and service tests, excluding the PostgreSQL-tagged Repository integration test.
+- `gradlew.bat postgresqlTest`: starts `postgres:17-alpine` and runs the Repository integration test against the
+  real PostgreSQL engine.
+- Docker must be running for `postgresqlTest`. If no Repository test can run, the task fails instead of silently
+  reporting success.
+- H2 remains a test runtime dependency for the other JPA service slice tests. It is not used by
+  `TourismRepositoryTest`.
+
+The PostgreSQL integration test verifies Category, Region, and TouristSpot lookup behavior, nullable
+`sigunguCode` lookup, and the three database unique constraints.
