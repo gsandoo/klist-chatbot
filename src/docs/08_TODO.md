@@ -9,7 +9,7 @@
 - [x] 실제 TourAPI HTTP Client
 - [x] TourAPI 페이지 Ingestion 및 실행 결과 집계
 - [x] 개발용 일회성 실행 및 Scheduler
-- [ ] Flyway 마이그레이션
+- [x] Flyway 마이그레이션
 - [ ] Elasticsearch 연결
 - [ ] 관광지 검색 API
 - [ ] OpenAI API 연결
