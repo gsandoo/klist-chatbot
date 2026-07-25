@@ -61,4 +61,10 @@ public class Category extends BaseTimeEntity {
         this.smallCategoryCode = smallCategoryCode;
         this.categoryName = categoryName;
     }
+
+    public void updateNameIfPresent(String categoryName) {
+        if (categoryName != null && !categoryName.isBlank()) {
+            this.categoryName = categoryName;
+        }
+    }
 }

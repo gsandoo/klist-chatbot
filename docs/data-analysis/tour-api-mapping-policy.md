@@ -115,3 +115,157 @@ Future ingestion should keep per-item failure records so one invalid content ite
 Category and Region IDs should be resolved in the loader/service layer using source codes prepared in
 `TouristSpotImportData`. DB save/upsert and retry policy should be added only after repository and service
 boundaries are defined.
+
+## 13. Final Identity Keys
+
+### Category
+
+Current Entity constraint: `uk_category_content_type_small_code(content_type_id, small_category_code)`.
+
+Final lookup key for the next loader step:
+
+- `contentTypeId + smallCategoryCode`
+
+`largeCategoryCode(cat1)` and `middleCategoryCode(cat2)` are retained for validation and update data, but they
+are not the primary lookup key. This matches the current Entity and DB schema and avoids assuming that `cat3`
+alone is globally stable across every content type. New classification fields `lclsSystm1/2/3` are preserved
+in `TouristSpotImportData` for future migration or reconciliation, but the current `Category` Entity still uses
+legacy `cat1/2/3`.
+
+### Region
+
+Current Entity stores a derived `regionCode` and has `uk_region_code(region_code)`.
+
+Final lookup key for the next loader step:
+
+- `areaCode + sigunguCode`
+- Derived `regionCode`: `areaCode` when `sigunguCode` is null, otherwise `areaCode:sigunguCode`
+
+Both codes stay as `String` so leading zeros are preserved. Blank `sigunguCode` is normalized to null. If
+wide-area rows and city/county/district rows are stored together, keep `region_code` as the unique DB key rather
+than a PostgreSQL unique constraint directly on `(area_code, sigungu_code)`, because PostgreSQL treats nulls as
+distinct in normal unique constraints.
+
+### TouristSpot
+
+Current Entity constraint: `uk_tourist_spot_tour_api_content_id(tour_api_content_id)`.
+
+Final lookup key:
+
+- `tourApiContentId`
+
+The normalized and Entity type is `Long`. TourAPI `contentid` is treated as numeric and no leading-zero
+requirement was observed in the sample analysis. `contentTypeId` is not part of the identity key; if it changes
+for the same `tourApiContentId`, the loader should treat it as a normal source update when `sourceModifiedAt`
+is newer and should log the type change.
+
+## 14. sourceModifiedAt Comparison Policy
+
+Recommended loader policy:
+
+| Scenario | Policy |
+|---|---|
+| New record, incoming `sourceModifiedAt` exists | Save when required fields are valid. |
+| New record, incoming `sourceModifiedAt` is null | Current Entity cannot persist it; skip and record a required timestamp failure. |
+| Incoming timestamp is newer than existing | Update. |
+| Incoming timestamp equals existing | Do not update. Refreshing `lastSyncedAt` can be considered separately. |
+| Incoming timestamp is older than existing | Do not update. |
+| Existing timestamp is null, incoming exists | Update. This should be rare because current Entity is not nullable. |
+| Existing timestamp exists, incoming null | Do not overwrite. Record a conservative skip. |
+| Both timestamps are null | Do not auto-update by field comparison. Record as unresolved data quality. |
+
+The current transformation layer enforces non-null `sourceModifiedAt` before Entity creation because the current
+`TouristSpot.sourceModifiedAt` column is `nullable = false`.
+
+## 15. Null Update Policy
+
+Default loader behavior should preserve existing values when incoming optional values are null. TourAPI blanks are
+normalized to null and do not mean "delete this value".
+
+Keep existing value when incoming value is null:
+
+- `description`
+- `address`
+- `detailAddress`
+- `zipCode`
+- `latitude`
+- `longitude`
+- `tel`
+- `openingHours`
+- `admissionFee`
+- `officialUrl`
+- `reservationUrl`
+- `imageUrl`
+- `thumbnailImageUrl`
+- `categoryId`
+- `regionId`
+
+Allow null updates only after a future source explicitly represents deletion or removal. No current TourAPI field
+in this mapping layer provides that signal. Invalid coordinates are also normalized to null with issues, so the
+loader should keep existing coordinates.
+
+## 16. Required Values and Skip Policy
+
+Transformation failure that should skip persistence:
+
+- missing or invalid `contentid`
+- missing or invalid `contenttypeid`
+- unsupported `contentTypeId`
+- missing `title`
+- missing or invalid required `modifiedtime`
+
+Transformation success with warnings:
+
+- invalid optional `createdtime`
+- invalid or out-of-range coordinate
+- invalid homepage or reservation URL
+- optional field missing
+
+Loader-stage warnings or skips:
+
+- `Category` not found for `contentTypeId + smallCategoryCode`: save can proceed with `categoryId = null`, but
+  keep source category codes and record a warning.
+- `Region` not found for `areaCode + sigunguCode`: save can proceed with `regionId = null`, but keep source
+  region codes and record a warning.
+
+## 17. Mapping Result Contract
+
+`TourApiMappingResult<T>` is the result object used by the transformation layer.
+
+- `isSuccess() == true`: normalized or Entity value exists. Issues may still contain non-fatal warnings.
+- `isSuccess() == false`: value is null and issues describe why the item must be skipped.
+- `TourApiMappingIssueCode` distinguishes required-field failures, unsupported content type, invalid coordinates,
+  and invalid dates.
+
+This keeps failure reasons available to the future loader instead of losing them through `Optional.empty()`.
+
+## 18. Repository and Loader Input Contract
+
+The future loader should consume `TouristSpotImportData` and mapping issues, not raw TourAPI DTOs.
+
+Expected lookup inputs:
+
+- Category lookup: `contentTypeId`, `smallCategoryCode`; validate `largeCategoryCode` and `middleCategoryCode`
+  when present.
+- Region lookup: `areaCode`, `sigunguCode`; use `regionName` only when it came from a code API response.
+- TouristSpot lookup: `tourApiContentId`.
+- Update decision: `sourceModifiedAt`.
+
+The loader should not treat null optional fields as delete requests, should not delete missing remote rows
+immediately, and should not call the external TourAPI from inside repository code.
+
+## 19. Entity and DB Schema Fit
+
+Current Entity and `src/main/resources/db/dev/tour-seed.sql` are aligned for the columns used here:
+
+- `TouristSpot.tourApiContentId`: `Long` / `BIGINT`, unique.
+- `TouristSpot.contentTypeId`: `Integer` / `INTEGER`.
+- Coordinates: `BigDecimal` / `NUMERIC(13, 10)`.
+- Source timestamps: `LocalDateTime` / `TIMESTAMP`.
+- URLs: `VARCHAR(2048)`.
+- Long text fields: `TEXT`.
+- `Region.region_code` is present in both Entity and SQL and is derived from area/sigungu.
+
+No Entity change is required for the current loader preparation step. A future migration is only needed if the
+project decides to make `Category` source-system aware, store `lclsSystm*` in the `Category` table, or add explicit
+soft-delete/status fields for content that disappears from TourAPI lists.

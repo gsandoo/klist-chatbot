@@ -185,4 +185,77 @@ public class TouristSpot extends BaseTimeEntity {
         this.sourceModifiedAt = sourceModifiedAt;
         this.lastSyncedAt = lastSyncedAt;
     }
+
+    public void updateFromSource(
+            Integer contentTypeId,
+            Long categoryId,
+            boolean categoryResolved,
+            Long regionId,
+            boolean regionResolved,
+            String largeCategoryCode,
+            String middleCategoryCode,
+            String smallCategoryCode,
+            String areaCode,
+            String sigunguCode,
+            String legalDongRegionCode,
+            String legalDongSigunguCode,
+            String name,
+            String description,
+            String address,
+            String detailAddress,
+            String zipCode,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            String tel,
+            String openingHours,
+            String admissionFee,
+            String officialUrl,
+            String reservationUrl,
+            String imageUrl,
+            String thumbnailImageUrl,
+            LocalDateTime sourceCreatedAt,
+            LocalDateTime sourceModifiedAt,
+            LocalDateTime lastSyncedAt
+    ) {
+        this.contentTypeId = contentTypeId;
+        if (categoryResolved) {
+            this.categoryId = categoryId;
+        }
+        if (regionResolved) {
+            this.regionId = regionId;
+        }
+        this.largeCategoryCode = keepExistingIfNull(this.largeCategoryCode, largeCategoryCode);
+        this.middleCategoryCode = keepExistingIfNull(this.middleCategoryCode, middleCategoryCode);
+        this.smallCategoryCode = keepExistingIfNull(this.smallCategoryCode, smallCategoryCode);
+        this.areaCode = keepExistingIfNull(this.areaCode, areaCode);
+        this.sigunguCode = keepExistingIfNull(this.sigunguCode, sigunguCode);
+        this.legalDongRegionCode = keepExistingIfNull(this.legalDongRegionCode, legalDongRegionCode);
+        this.legalDongSigunguCode = keepExistingIfNull(this.legalDongSigunguCode, legalDongSigunguCode);
+        this.name = name;
+        this.description = keepExistingIfNull(this.description, description);
+        this.address = keepExistingIfNull(this.address, address);
+        this.detailAddress = keepExistingIfNull(this.detailAddress, detailAddress);
+        this.zipCode = keepExistingIfNull(this.zipCode, zipCode);
+        this.latitude = keepExistingIfNull(this.latitude, latitude);
+        this.longitude = keepExistingIfNull(this.longitude, longitude);
+        this.tel = keepExistingIfNull(this.tel, tel);
+        this.openingHours = keepExistingIfNull(this.openingHours, openingHours);
+        this.admissionFee = keepExistingIfNull(this.admissionFee, admissionFee);
+        this.officialUrl = keepExistingIfNull(this.officialUrl, officialUrl);
+        this.reservationUrl = keepExistingIfNull(this.reservationUrl, reservationUrl);
+        this.imageUrl = keepExistingIfNull(this.imageUrl, imageUrl);
+        this.thumbnailImageUrl = keepExistingIfNull(this.thumbnailImageUrl, thumbnailImageUrl);
+        if (this.sourceCreatedAt == null) {
+            this.sourceCreatedAt = sourceCreatedAt;
+        }
+        this.sourceModifiedAt = sourceModifiedAt;
+        this.lastSyncedAt = lastSyncedAt;
+    }
+
+    private static <T> T keepExistingIfNull(T existingValue, T incomingValue) {
+        if (incomingValue == null) {
+            return existingValue;
+        }
+        return incomingValue;
+    }
 }
