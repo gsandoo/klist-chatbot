@@ -3,3 +3,12 @@ spring:
     name: klist-chatbot
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
+
+tour-api:
+  base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}
+  service-key: ${TOUR_API_SERVICE_KEY:}
+  mobile-os: ${TOUR_API_MOBILE_OS:ETC}
+  mobile-app: ${TOUR_API_MOBILE_APP:klist-chatbot}
+  response-type: json
+  connect-timeout: ${TOUR_API_CONNECT_TIMEOUT:3s}
+  response-timeout: ${TOUR_API_RESPONSE_TIMEOUT:5s}

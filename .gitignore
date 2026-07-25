@@ -42,3 +42,6 @@ src/main/resources/application-prod.yml
 
 src/main/resources/db/dev
 docs
+!src/docs/
+src/docs/*
+!src/docs/10_TourAPI_Collector_Architecture.md

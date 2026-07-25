@@ -22,13 +22,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class TouristSpotImportService {
+public class TouristSpotImportService implements TouristSpotImporter {
 
     private final CategoryPersistenceResolver categoryPersistenceResolver;
     private final RegionPersistenceResolver regionPersistenceResolver;
     private final TouristSpotRepository touristSpotRepository;
 
     @Transactional
+    @Override
     public TouristSpotImportResult importOne(TourApiMappingResult<TouristSpotImportData> mappingResult) {
         if (mappingResult == null || !mappingResult.isSuccess()) {
             return skippedByMappingFailure(mappingResult);
