@@ -1,0 +1,105 @@
+{
+  "dynamic": "strict",
+  "properties": {
+    "touristSpotId": {
+      "type": "long"
+    },
+    "title": {
+      "type": "text",
+      "analyzer": "korean_index",
+      "search_analyzer": "korean_search",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "description": {
+      "type": "text",
+      "analyzer": "korean_index",
+      "search_analyzer": "korean_search"
+    },
+    "address": {
+      "type": "text",
+      "analyzer": "korean_index",
+      "search_analyzer": "korean_search",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 512
+        }
+      }
+    },
+    "region": {
+      "type": "object",
+      "properties": {
+        "regionId": {
+          "type": "long"
+        },
+        "areaCode": {
+          "type": "keyword"
+        },
+        "sigunguCode": {
+          "type": "keyword"
+        },
+        "legalDongRegionCode": {
+          "type": "keyword"
+        },
+        "legalDongSigunguCode": {
+          "type": "keyword"
+        }
+      }
+    },
+    "category": {
+      "type": "object",
+      "properties": {
+        "categoryId": {
+          "type": "long"
+        },
+        "contentTypeId": {
+          "type": "integer"
+        },
+        "largeCategoryCode": {
+          "type": "keyword"
+        },
+        "middleCategoryCode": {
+          "type": "keyword"
+        },
+        "smallCategoryCode": {
+          "type": "keyword"
+        }
+      }
+    },
+    "coordinates": {
+      "type": "geo_point"
+    },
+    "imageUrl": {
+      "type": "keyword",
+      "index": false,
+      "doc_values": false
+    },
+    "phoneNumber": {
+      "type": "keyword"
+    },
+    "openingHours": {
+      "type": "text",
+      "analyzer": "korean_index",
+      "search_analyzer": "korean_search"
+    },
+    "admissionFee": {
+      "type": "text",
+      "analyzer": "korean_index",
+      "search_analyzer": "korean_search"
+    },
+    "reservationUrl": {
+      "type": "keyword",
+      "index": false,
+      "doc_values": false
+    },
+    "sourceModifiedAt": {
+      "type": "date",
+      "format": "strict_date_optional_time||epoch_millis"
+    }
+  }
+}

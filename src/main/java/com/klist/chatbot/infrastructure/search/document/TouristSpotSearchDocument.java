@@ -8,24 +8,33 @@ import org.springframework.data.elasticsearch.annotations.FieldType;
 import org.springframework.data.elasticsearch.annotations.InnerField;
 import org.springframework.data.elasticsearch.annotations.MultiField;
 import org.springframework.data.elasticsearch.annotations.GeoPointField;
+import org.springframework.data.elasticsearch.annotations.WriteTypeHint;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 
-@Document(indexName = "tourist-spots", createIndex = false)
+@Document(indexName = "tourist-spots", createIndex = false, writeTypeHint = WriteTypeHint.FALSE)
 public record TouristSpotSearchDocument(
         @Id
         Long touristSpotId,
 
         @MultiField(
-                mainField = @Field(type = FieldType.Text, analyzer = "standard"),
+                mainField = @Field(
+                        type = FieldType.Text,
+                        analyzer = "korean_index",
+                        searchAnalyzer = "korean_search"
+                ),
                 otherFields = @InnerField(suffix = "keyword", type = FieldType.Keyword)
         )
         String title,
 
-        @Field(type = FieldType.Text, analyzer = "standard")
+        @Field(type = FieldType.Text, analyzer = "korean_index", searchAnalyzer = "korean_search")
         String description,
 
         @MultiField(
-                mainField = @Field(type = FieldType.Text, analyzer = "standard"),
+                mainField = @Field(
+                        type = FieldType.Text,
+                        analyzer = "korean_index",
+                        searchAnalyzer = "korean_search"
+                ),
                 otherFields = @InnerField(suffix = "keyword", type = FieldType.Keyword)
         )
         String address,

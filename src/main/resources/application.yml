@@ -19,3 +19,10 @@ tour-api:
   response-type: json
   connect-timeout: ${TOUR_API_CONNECT_TIMEOUT:3s}
   response-timeout: ${TOUR_API_RESPONSE_TIMEOUT:5s}
+
+search:
+  tourist-spots:
+    alias: tourist-spots
+    version: v1
+    settings-location: classpath:elasticsearch/tourist-spots-settings.json
+    mappings-location: classpath:elasticsearch/tourist-spots-mappings.json
