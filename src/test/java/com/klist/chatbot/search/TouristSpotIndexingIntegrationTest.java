@@ -3,9 +3,14 @@ package com.klist.chatbot.search;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchDocument;
+import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchCategory;
+import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchRegion;
 import com.klist.chatbot.infrastructure.search.index.TouristSpotIndexInitializationResult;
 import com.klist.chatbot.infrastructure.search.index.TouristSpotIndexManager;
 import com.klist.chatbot.infrastructure.search.index.TouristSpotIndexingGateway;
+import com.klist.chatbot.search.application.TouristSpotSearchCriteria;
+import com.klist.chatbot.search.application.TouristSpotSearchGateway;
+import com.klist.chatbot.search.application.TouristSpotSearchResult;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,6 +58,9 @@ class TouristSpotIndexingIntegrationTest {
     private TouristSpotIndexingGateway gateway;
 
     @Autowired
+    private TouristSpotSearchGateway searchGateway;
+
+    @Autowired
     private ElasticsearchOperations operations;
 
     @BeforeEach
@@ -85,6 +93,67 @@ class TouristSpotIndexingIntegrationTest {
         assertThat(gateway.exists(1001L)).isFalse();
     }
 
+    @Test
+    void searchesKoreanKeywordWithRegionCategoryDistanceAndMinimumScore() {
+        gateway.save(searchDocument(
+                2001L,
+                "북악산 야경 전망대",
+                "서울 도심의 야경을 감상하기 좋은 전망 명소",
+                "서울특별시 종로구",
+                11L,
+                "1",
+                "1",
+                12,
+                37.5928,
+                126.9669
+        ));
+        gateway.save(searchDocument(
+                2002L,
+                "제주 해변 산책로",
+                "제주의 바다를 따라 걷는 산책 명소",
+                "제주특별자치도 제주시",
+                50L,
+                "39",
+                "4",
+                12,
+                33.4996,
+                126.5312
+        ));
+        operations.indexOps(IndexCoordinates.of("tourist-spots-v1")).refresh();
+
+        TouristSpotSearchResult result = searchGateway.search(new TouristSpotSearchCriteria(
+                "야경",
+                11L,
+                "1",
+                "1",
+                12,
+                null,
+                null,
+                null,
+                null,
+                37.5665,
+                126.9780,
+                10.0,
+                5,
+                0.1f
+        ));
+
+        assertThat(result.totalHits()).isEqualTo(1);
+        assertThat(result.evidence()).singleElement().satisfies(evidence -> {
+            assertThat(evidence.touristSpotId()).isEqualTo(2001L);
+            assertThat(evidence.title()).isEqualTo("북악산 야경 전망대");
+            assertThat(evidence.regionId()).isEqualTo(11L);
+            assertThat(evidence.contentTypeId()).isEqualTo(12);
+            assertThat(evidence.score()).isPositive();
+        });
+
+        TouristSpotSearchResult belowMinimumScore = searchGateway.search(new TouristSpotSearchCriteria(
+                "야경", null, null, null, null, null, null, null, null,
+                null, null, null, 5, 1000.0f
+        ));
+        assertThat(belowMinimumScore.isEmpty()).isTrue();
+    }
+
     private static TouristSpotSearchDocument document(Long id, String title) {
         return new TouristSpotSearchDocument(
                 id,
@@ -94,6 +163,35 @@ class TouristSpotIndexingIntegrationTest {
                 null,
                 null,
                 new GeoPoint(37.5796, 126.9770),
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private static TouristSpotSearchDocument searchDocument(
+            Long id,
+            String title,
+            String description,
+            String address,
+            Long regionId,
+            String areaCode,
+            String sigunguCode,
+            Integer contentTypeId,
+            double latitude,
+            double longitude
+    ) {
+        return new TouristSpotSearchDocument(
+                id,
+                title,
+                description,
+                address,
+                new TouristSpotSearchRegion(regionId, areaCode, sigunguCode, null, null),
+                new TouristSpotSearchCategory(null, contentTypeId, null, null, null),
+                new GeoPoint(latitude, longitude),
                 null,
                 null,
                 null,

@@ -3,7 +3,8 @@
 ## 1. 목적과 범위
 
 TourAPI Collector는 여러 외부 응답을 정규화 이전의 한 관광 데이터 묶음으로 조합한다.
-이 단계에서는 실제 HTTP, 인증키, Scheduler, Controller, Spring Batch를 구현하지 않는다.
+초기 Collector 설계 범위에는 실제 HTTP, 인증키, Scheduler, Controller, Spring Batch가 포함되지 않았다.
+현재는 이 설계를 기반으로 실제 HTTP Client, 외부 설정, Ingestion Service와 Scheduler까지 구현돼 있다.
 
 표준 흐름은 다음과 같다.
 
@@ -136,21 +137,21 @@ Orchestrator가 후속 단계를 호출하지 않게 한다.
 - Orchestrator는 recording importer를 사용해 수집 실패 시 import가 호출되지 않는지 검증한다.
 - Spring Context나 실제 네트워크는 사용하지 않는다.
 
-## 8. 향후 실제 Client 연결
+## 8. 실제 Client 및 Ingestion 연결 현황
 
-다음 단계의 HTTP Client 구현은 현재 `TourApiClient`를 구현해야 한다.
+`RestTourApiClient`가 `TourApiClient`를 구현하며 다음 기능이 연결돼 있다.
 
 - 공통 base URL과 요청 파라미터 구성
-- 서비스 키의 안전한 외부 설정
-- 연결 및 응답 timeout
+- 서비스 키와 timeout의 외부 설정
 - TourAPI header `resultCode` 검증
-- 빈 `items`와 단일 item/배열 역직렬화
-- HTTP 오류와 응답 형식 오류의 `TourApiClientResult` 변환
+- 빈 `items`와 단일 item/배열 응답 처리
+- 연결, HTTP, 응답 형식 오류의 `TourApiClientResult` 변환
 - endpoint별 DTO 반환
-- 페이지 목록에서 수집 대상 `contentId`를 공급하는 상위 순회 정책
+- `areaBasedList2` 페이지 순회와 수집 대상 `contentId` 공급
 
-Client 구현체가 만들어지면 Spring 설정에서 Client, Collector, Orchestrator bean을 등록한다.
-현재는 실제 Client bean이 없으므로 골격 클래스도 자동 bean 등록하지 않는다.
+Spring 설정에서 Client, Collector, Orchestrator와 Ingestion Service가 등록된다.
+개발용 일회성 Runner와 단일 인스턴스 Scheduler도 구현돼 있다. Controller와 Spring Batch는 현재 범위에
+포함되지 않으며, 다중 인스턴스 운영 전에는 Scheduler 분산 잠금이 추가로 필요하다.
 
 ## 9. Flyway 연계
 
