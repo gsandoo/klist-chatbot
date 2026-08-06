@@ -30,3 +30,8 @@ search:
       mode: ${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}
     reindex:
       page-size: ${TOURIST_SPOT_REINDEX_PAGE_SIZE:500}
+
+chat:
+  question-analysis:
+    result-size: ${CHAT_SEARCH_RESULT_SIZE:5}
+    minimum-score: ${CHAT_SEARCH_MINIMUM_SCORE:0.1}

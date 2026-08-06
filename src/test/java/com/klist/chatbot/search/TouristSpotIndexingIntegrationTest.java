@@ -2,6 +2,7 @@ package com.klist.chatbot.search;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.klist.chatbot.chat.application.ChatSearchOrchestrator;
 import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchDocument;
 import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchCategory;
 import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchRegion;
@@ -65,6 +66,9 @@ class TouristSpotIndexingIntegrationTest {
 
     @Autowired
     private TouristSpotSearchGateway searchGateway;
+
+    @Autowired
+    private ChatSearchOrchestrator chatSearchOrchestrator;
 
     @Autowired
     private ElasticsearchOperations operations;
@@ -201,6 +205,30 @@ class TouristSpotIndexingIntegrationTest {
         assertThat(evaluation.byContentType()).containsKeys("12", "14", "15", "25", "28", "32", "38", "39");
         assertThat(evaluation.byContentType().values())
                 .allSatisfy(metrics -> assertThat(metrics.top3Rate()).isEqualTo(1.0));
+    }
+
+    @Test
+    void analyzesChatQuestionsIntoCriteriaThatRetrieveExpectedTouristSpots() {
+        gateway.saveAll(TouristSpotSearchQualityFixture.documents());
+        operations.indexOps(IndexCoordinates.of("tourist-spots-v1")).refresh();
+
+        assertAnalyzedTopOne("서울에서 야경 전망 명소 추천해줘",
+                TouristSpotSearchQualityFixture.N_SEOUL_TOWER_ID);
+        assertAnalyzedTopOne("부산에서 해변 데이트 명소 알려줘",
+                TouristSpotSearchQualityFixture.HAEUNDAE_ID);
+        assertAnalyzedTopOne("서울에서 비 오는 날 실내 미술관 찾아줘",
+                TouristSpotSearchQualityFixture.SEOUL_MUSEUM_ID);
+    }
+
+    private void assertAnalyzedTopOne(String question, long expectedTouristSpotId) {
+        var chatSearchResult = chatSearchOrchestrator.search(question);
+        var analysis = chatSearchResult.questionAnalysis();
+        TouristSpotSearchResult result = chatSearchResult.touristSpotSearchResult();
+
+        assertThat(result.evidence())
+                .as("question=%s keyword=%s", question, analysis.normalizedKeyword())
+                .isNotEmpty();
+        assertThat(result.evidence().get(0).touristSpotId()).isEqualTo(expectedTouristSpotId);
     }
 
     private static TouristSpotSearchDocument document(Long id, String title) {
