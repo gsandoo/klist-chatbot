@@ -65,6 +65,20 @@ class ElasticsearchTouristSpotIndexingGatewayTest {
     }
 
     @Test
+    void bulkSavesDocumentsDirectlyToRequestedVersionedIndex() {
+        List<TouristSpotSearchDocument> documents = List.of(document(1L, "경복궁"));
+
+        gateway.saveAll(documents, "tourist-spots-v2");
+
+        verify(operations).bulkIndex(
+                any(),
+                org.mockito.ArgumentMatchers.<IndexCoordinates>argThat(
+                        coordinates -> coordinates.getIndexName().equals("tourist-spots-v2")
+                )
+        );
+    }
+
+    @Test
     void emptyBulkDoesNotCallElasticsearch() {
         assertThat(gateway.saveAll(List.of())).isEmpty();
 

@@ -368,6 +368,11 @@ class TouristSpotImportServiceTest {
             this.saved = touristSpot;
             return touristSpot;
         }
+
+        @Override
+        public java.util.List<TouristSpot> findPageAfterId(long lastSeenId, int pageSize) {
+            return java.util.List.of();
+        }
     }
 
     private static class NoopCategoryRepository implements CategoryRepository {

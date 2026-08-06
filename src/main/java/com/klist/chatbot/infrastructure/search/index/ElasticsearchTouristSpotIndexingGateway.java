@@ -33,8 +33,19 @@ public class ElasticsearchTouristSpotIndexingGateway implements TouristSpotIndex
 
     @Override
     public List<TouristSpotSearchDocument> saveAll(List<TouristSpotSearchDocument> documents) {
+        return saveAll(documents, indexCoordinates.getIndexName());
+    }
+
+    @Override
+    public List<TouristSpotSearchDocument> saveAll(
+            List<TouristSpotSearchDocument> documents,
+            String indexName
+    ) {
         if (documents == null) {
             throw new IllegalArgumentException("documents must not be null.");
+        }
+        if (indexName == null || indexName.isBlank()) {
+            throw new IllegalArgumentException("indexName must not be blank.");
         }
         documents.forEach(this::validateDocument);
         if (documents.isEmpty()) {
@@ -48,7 +59,7 @@ public class ElasticsearchTouristSpotIndexingGateway implements TouristSpotIndex
                         .build())
                 .toList();
         try {
-            operations.bulkIndex(queries, indexCoordinates);
+            operations.bulkIndex(queries, IndexCoordinates.of(indexName));
             return List.copyOf(documents);
         } catch (RuntimeException exception) {
             throw failure(

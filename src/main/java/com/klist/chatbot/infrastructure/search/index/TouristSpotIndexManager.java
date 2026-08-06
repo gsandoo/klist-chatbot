@@ -32,18 +32,10 @@ public class TouristSpotIndexManager {
         properties.validate();
         String indexName = properties.versionedIndexName();
         String alias = properties.getAlias();
-        IndexOperations indexOperations = operations.indexOps(IndexCoordinates.of(indexName));
-        IndexOperations aliasOperations = operations.indexOps(IndexCoordinates.of(alias + "-*"));
 
         try {
-            boolean created = false;
-            if (!indexOperations.exists()) {
-                created = indexOperations.create(resourceLoader.settings(), resourceLoader.mappings());
-                if (!created) {
-                    throw new IllegalStateException("Elasticsearch did not create the index.");
-                }
-            }
-            boolean aliasUpdated = switchAlias(aliasOperations, indexName, alias);
+            boolean created = createIndexIfAbsent(indexName);
+            boolean aliasUpdated = switchAlias(indexName);
             return new TouristSpotIndexInitializationResult(indexName, alias, created, aliasUpdated);
         } catch (TouristSpotIndexingException exception) {
             throw exception;
@@ -56,7 +48,34 @@ public class TouristSpotIndexManager {
         }
     }
 
-    private boolean switchAlias(IndexOperations indexOperations, String targetIndex, String alias) {
+    public String createNewVersionIndex() {
+        properties.validate();
+        String indexName = properties.versionedIndexName();
+        IndexOperations indexOperations = operations.indexOps(IndexCoordinates.of(indexName));
+        try {
+            if (indexOperations.exists()) {
+                throw new IllegalStateException("The target tourist-spots index already exists.");
+            }
+            create(indexOperations);
+            return indexName;
+        } catch (TouristSpotIndexingException exception) {
+            throw exception;
+        } catch (RuntimeException exception) {
+            throw new TouristSpotIndexingException(
+                    TouristSpotIndexOperation.CREATE_INDEX,
+                    "Unable to create a new tourist-spots index.",
+                    exception
+            );
+        }
+    }
+
+    public boolean switchAlias(String targetIndex) {
+        properties.validate();
+        if (!properties.versionedIndexName().equals(targetIndex)) {
+            throw new IllegalArgumentException("targetIndex must be the configured versioned index.");
+        }
+        String alias = properties.getAlias();
+        IndexOperations indexOperations = operations.indexOps(IndexCoordinates.of(alias + "-*"));
         try {
             Map<String, java.util.Set<AliasData>> currentAliases;
             try {
@@ -91,6 +110,21 @@ public class TouristSpotIndexManager {
                     "Unable to switch the tourist-spots alias.",
                     exception
             );
+        }
+    }
+
+    private boolean createIndexIfAbsent(String indexName) {
+        IndexOperations indexOperations = operations.indexOps(IndexCoordinates.of(indexName));
+        if (indexOperations.exists()) {
+            return false;
+        }
+        create(indexOperations);
+        return true;
+    }
+
+    private void create(IndexOperations indexOperations) {
+        if (!indexOperations.create(resourceLoader.settings(), resourceLoader.mappings())) {
+            throw new IllegalStateException("Elasticsearch did not create the index.");
         }
     }
 

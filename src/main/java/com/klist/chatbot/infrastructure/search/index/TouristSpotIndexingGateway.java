@@ -9,6 +9,11 @@ public interface TouristSpotIndexingGateway {
 
     List<TouristSpotSearchDocument> saveAll(List<TouristSpotSearchDocument> documents);
 
+    List<TouristSpotSearchDocument> saveAll(
+            List<TouristSpotSearchDocument> documents,
+            String indexName
+    );
+
     void delete(Long touristSpotId);
 
     boolean exists(Long touristSpotId);

@@ -78,6 +78,18 @@ class TouristSpotIndexManagerTest {
     }
 
     @Test
+    void createsNewVersionIndexWithoutPublishingAlias() {
+        when(indexOperations.exists()).thenReturn(false);
+        when(indexOperations.create(any(Map.class), any())).thenReturn(true);
+
+        String indexName = manager.createNewVersionIndex();
+
+        assertThat(indexName).isEqualTo("tourist-spots-v1");
+        verify(indexOperations).create(any(Map.class), any());
+        verify(aliasOperations, never()).alias(any());
+    }
+
+    @Test
     void doesNothingWhenVersionAndWriteAliasAreReady() {
         when(indexOperations.exists()).thenReturn(true);
         when(aliasOperations.getAliases("tourist-spots")).thenReturn(Map.of(
