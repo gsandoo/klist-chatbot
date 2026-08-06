@@ -26,20 +26,37 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
 
     private final ChatCompletionOrchestrator completionOrchestrator;
     private final LongSupplier nanoTime;
+    private final ChatMetricsRecorder metrics;
 
     public InternalChatQueryService(ChatCompletionOrchestrator completionOrchestrator) {
-        this(completionOrchestrator, System::nanoTime);
+        this(completionOrchestrator, System::nanoTime, ChatMetricsRecorder.NO_OP);
+    }
+
+    public InternalChatQueryService(
+            ChatCompletionOrchestrator completionOrchestrator,
+            ChatMetricsRecorder metrics
+    ) {
+        this(completionOrchestrator, System::nanoTime, metrics);
     }
 
     InternalChatQueryService(
             ChatCompletionOrchestrator completionOrchestrator,
             LongSupplier nanoTime
     ) {
+        this(completionOrchestrator, nanoTime, ChatMetricsRecorder.NO_OP);
+    }
+
+    InternalChatQueryService(
+            ChatCompletionOrchestrator completionOrchestrator,
+            LongSupplier nanoTime,
+            ChatMetricsRecorder metrics
+    ) {
         this.completionOrchestrator = Objects.requireNonNull(
                 completionOrchestrator,
                 "completionOrchestrator must not be null"
         );
         this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime must not be null");
+        this.metrics = Objects.requireNonNull(metrics, "metrics must not be null");
     }
 
     @Override
@@ -49,19 +66,32 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
             throw new IllegalArgumentException("traceId must not be blank");
         }
         long startedAt = nanoTime.getAsLong();
-        ChatCompletionResult completionResult = complete(request);
-        long processingTimeMs = elapsedMillis(startedAt, nanoTime.getAsLong());
+        try {
+            ChatCompletionResult completionResult = complete(request);
+            Duration processingTime = elapsed(startedAt, nanoTime.getAsLong());
+            InternalChatQueryResponse response = toResponse(
+                    completionResult,
+                    traceId,
+                    processingTime.toMillis()
+            );
+            metrics.completed(completionResult, processingTime);
+            return response;
+        } catch (RuntimeException exception) {
+            metrics.failed(failureReason(exception), elapsed(startedAt, nanoTime.getAsLong()));
+            throw exception;
+        }
+    }
 
+    private static InternalChatQueryResponse toResponse(
+            ChatCompletionResult completionResult,
+            String traceId,
+            long processingTimeMs
+    ) {
         if (completionResult.status() == ChatCompletionStatus.NO_EVIDENCE) {
             return new InternalChatQueryResponse(
-                    NO_RESULT_ANSWER,
-                    List.of(),
-                    traceId,
-                    ChatQueryStatus.NO_RESULT,
-                    processingTimeMs
+                    NO_RESULT_ANSWER, List.of(), traceId, ChatQueryStatus.NO_RESULT, processingTimeMs
             );
         }
-
         ChatGeneratedAnswer generatedAnswer = completionResult.generatedAnswer();
         return new InternalChatQueryResponse(
                 generatedAnswer.answer(),
@@ -130,7 +160,20 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
         );
     }
 
-    private static long elapsedMillis(long startedAt, long completedAt) {
-        return Math.max(0, completedAt - startedAt) / 1_000_000;
+    private static Duration elapsed(long startedAt, long completedAt) {
+        return Duration.ofNanos(Math.max(0, completedAt - startedAt));
+    }
+
+    private static String failureReason(RuntimeException exception) {
+        if (exception instanceof ChatQueryTimeoutException) {
+            return "timeout";
+        }
+        if (exception instanceof ChatProcessingUnavailableException) {
+            return "unavailable";
+        }
+        if (exception instanceof ChatProcessingFailedException) {
+            return "invalid_response";
+        }
+        return "unexpected";
     }
 }

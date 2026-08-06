@@ -18,6 +18,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
 import org.springframework.data.elasticsearch.core.SearchHit;
@@ -105,7 +106,24 @@ class ElasticsearchTouristSpotSearchGatewayTest {
 
         assertThatThrownBy(() -> gateway.search(criteria()))
                 .isInstanceOf(TouristSpotSearchException.class)
-                .hasCause(cause);
+                .hasCause(cause)
+                .satisfies(exception -> assertThat(
+                        ((TouristSpotSearchException) exception).retryable()
+                ).isFalse());
+    }
+
+    @Test
+    void marksTransientElasticsearchFailureAsRetryable() {
+        RuntimeException cause = new TransientDataAccessResourceException("unavailable");
+        when(operations.search(
+                org.mockito.ArgumentMatchers.any(NativeQuery.class),
+                eq(TouristSpotSearchDocument.class),
+                eq(IndexCoordinates.of("tourist-spots"))
+        )).thenThrow(cause);
+
+        assertThatThrownBy(() -> gateway.search(criteria()))
+                .isInstanceOfSatisfying(TouristSpotSearchException.class, exception ->
+                        assertThat(exception.retryable()).isTrue());
     }
 
     private static TouristSpotSearchCriteria criteria() {

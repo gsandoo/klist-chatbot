@@ -23,6 +23,9 @@ class OpenAiLlmPropertiesTest {
         assertThat(properties.getMaxOutputTokens()).isEqualTo(1200);
         assertThat(properties.getConnectTimeout()).isEqualTo(Duration.ofSeconds(3));
         assertThat(properties.getResponseTimeout()).isEqualTo(Duration.ofSeconds(20));
+        assertThat(properties.getRetryMaxAttempts()).isEqualTo(3);
+        assertThat(properties.getRetryInitialBackoff()).isEqualTo(Duration.ofMillis(100));
+        assertThat(properties.getRetryMaxBackoff()).isEqualTo(Duration.ofSeconds(1));
     }
 
     @Test
@@ -71,5 +74,23 @@ class OpenAiLlmPropertiesTest {
         assertThatThrownBy(properties::validate)
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("max output tokens");
+    }
+
+    @Test
+    void rejectsInvalidRetryConfiguration() {
+        OpenAiLlmProperties properties = new OpenAiLlmProperties();
+        properties.setRetryMaxAttempts(0);
+
+        assertThatThrownBy(properties::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("retry max attempts");
+
+        properties.setRetryMaxAttempts(3);
+        properties.setRetryInitialBackoff(Duration.ofSeconds(2));
+        properties.setRetryMaxBackoff(Duration.ofSeconds(1));
+
+        assertThatThrownBy(properties::validate)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("initial backoff");
     }
 }

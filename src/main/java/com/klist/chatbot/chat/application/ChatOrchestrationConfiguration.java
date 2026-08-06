@@ -56,9 +56,10 @@ public class ChatOrchestrationConfiguration {
     @Primary
     @ConditionalOnProperty(prefix = "llm.openai", name = "enabled", havingValue = "true")
     InternalChatQueryUseCase internalChatQueryService(
-            ChatCompletionOrchestrator completionOrchestrator
+            ChatCompletionOrchestrator completionOrchestrator,
+            ChatMetricsRecorder metrics
     ) {
-        return new InternalChatQueryService(completionOrchestrator);
+        return new InternalChatQueryService(completionOrchestrator, metrics);
     }
 
     @Bean

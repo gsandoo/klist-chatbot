@@ -18,6 +18,9 @@ public class OpenAiLlmProperties {
     private int maxOutputTokens = 1200;
     private Duration connectTimeout = Duration.ofSeconds(3);
     private Duration responseTimeout = Duration.ofSeconds(20);
+    private int retryMaxAttempts = 3;
+    private Duration retryInitialBackoff = Duration.ofMillis(100);
+    private Duration retryMaxBackoff = Duration.ofSeconds(1);
 
     @PostConstruct
     public void validate() {
@@ -38,6 +41,16 @@ public class OpenAiLlmProperties {
         }
         validateTimeout(connectTimeout, "connect timeout");
         validateTimeout(responseTimeout, "response timeout");
+        if (retryMaxAttempts < 1 || retryMaxAttempts > 5) {
+            throw new IllegalStateException("OpenAI retry max attempts must be between 1 and 5");
+        }
+        validateTimeout(retryInitialBackoff, "retry initial backoff");
+        validateTimeout(retryMaxBackoff, "retry max backoff");
+        if (retryInitialBackoff.compareTo(retryMaxBackoff) > 0) {
+            throw new IllegalStateException(
+                    "OpenAI retry initial backoff must not exceed max backoff"
+            );
+        }
     }
 
     private static boolean isHttp(URI uri) {
@@ -120,5 +133,29 @@ public class OpenAiLlmProperties {
 
     public void setResponseTimeout(Duration responseTimeout) {
         this.responseTimeout = responseTimeout;
+    }
+
+    public int getRetryMaxAttempts() {
+        return retryMaxAttempts;
+    }
+
+    public void setRetryMaxAttempts(int retryMaxAttempts) {
+        this.retryMaxAttempts = retryMaxAttempts;
+    }
+
+    public Duration getRetryInitialBackoff() {
+        return retryInitialBackoff;
+    }
+
+    public void setRetryInitialBackoff(Duration retryInitialBackoff) {
+        this.retryInitialBackoff = retryInitialBackoff;
+    }
+
+    public Duration getRetryMaxBackoff() {
+        return retryMaxBackoff;
+    }
+
+    public void setRetryMaxBackoff(Duration retryMaxBackoff) {
+        this.retryMaxBackoff = retryMaxBackoff;
     }
 }
