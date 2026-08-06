@@ -129,13 +129,7 @@ public class InternalChatApiExceptionHandler {
     }
 
     private String traceId(HttpServletRequest request) {
-        Object attribute = request.getAttribute(TraceIdResolver.REQUEST_ATTRIBUTE);
-        if (attribute instanceof String value) {
-            return value;
-        }
-        String traceId = TraceIdResolver.resolve(request.getHeader(TraceIdResolver.HEADER_NAME));
-        request.setAttribute(TraceIdResolver.REQUEST_ATTRIBUTE, traceId);
-        return traceId;
+        return TraceIdResolver.resolve(request);
     }
 
     private ResponseEntity<InternalApiErrorResponse> response(
