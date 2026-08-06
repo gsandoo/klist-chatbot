@@ -3,6 +3,7 @@ package com.klist.chatbot.infrastructure.search.query;
 import co.elastic.clients.elasticsearch._types.GeoLocation;
 import co.elastic.clients.elasticsearch._types.query_dsl.BoolQuery;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
+import co.elastic.clients.elasticsearch._types.query_dsl.TextQueryType;
 import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchDocument;
 import com.klist.chatbot.infrastructure.search.index.TouristSpotIndexProperties;
 import com.klist.chatbot.search.application.TouristSpotSearchCriteria;
@@ -91,6 +92,7 @@ public class ElasticsearchTouristSpotSearchGateway implements TouristSpotSearchG
         Query multiMatch = Query.of(query -> query.multiMatch(multi -> multi
                 .query(keyword)
                 .fields(WEIGHTED_FIELDS)
+                .type(TextQueryType.CrossFields)
                 .minimumShouldMatch("75%")
         ));
         Query exactTitle = Query.of(query -> query.term(term -> term

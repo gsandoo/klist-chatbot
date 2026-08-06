@@ -56,6 +56,7 @@ class ElasticsearchTouristSpotSearchGatewayTest {
         String json = query.getQuery().toString();
         assertThat(json)
                 .contains("title^5", "address^3", "description^2")
+                .contains("cross_fields")
                 .contains("region.areaCode", "category.contentTypeId")
                 .contains("geo_distance", "coordinates", "5.0km")
                 .contains("title.keyword");

@@ -11,11 +11,13 @@ import com.klist.chatbot.infrastructure.search.index.TouristSpotIndexingGateway;
 import com.klist.chatbot.search.application.TouristSpotSearchCriteria;
 import com.klist.chatbot.search.application.TouristSpotSearchGateway;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
+import com.klist.chatbot.search.fixture.TouristSpotSearchQualityFixture;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.assertj.core.api.SoftAssertions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.elasticsearch.core.ElasticsearchOperations;
@@ -152,6 +154,26 @@ class TouristSpotIndexingIntegrationTest {
                 null, null, null, 5, 1000.0f
         ));
         assertThat(belowMinimumScore.isEmpty()).isTrue();
+    }
+
+    @Test
+    void ranksExpectedTouristSpotFirstForRepresentativeNaturalLanguageQuestions() {
+        gateway.saveAll(TouristSpotSearchQualityFixture.documents());
+        operations.indexOps(IndexCoordinates.of("tourist-spots-v1")).refresh();
+
+        SoftAssertions.assertSoftly(softly -> {
+            for (var qualityCase : TouristSpotSearchQualityFixture.cases()) {
+                TouristSpotSearchResult result = searchGateway.search(qualityCase.criteria());
+                softly.assertThat(result.evidence())
+                        .as("question=%s", qualityCase.question())
+                        .isNotEmpty();
+                if (!result.evidence().isEmpty()) {
+                    softly.assertThat(result.evidence().get(0).touristSpotId())
+                            .as("Top-1 question=%s", qualityCase.question())
+                            .isEqualTo(qualityCase.expectedTouristSpotId());
+                }
+            }
+        });
     }
 
     private static TouristSpotSearchDocument document(Long id, String title) {
