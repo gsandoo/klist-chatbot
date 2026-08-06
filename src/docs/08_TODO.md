@@ -102,8 +102,8 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 
 - [x] LLM 설정 외부화
 - [x] LLM Client 인터페이스와 요청·결과 모델
-- [ ] LLM HTTP Client
-- [ ] timeout, connection, HTTP, 모델 오류 구분
+- [x] Responses API 기반 LLM HTTP Client
+- [x] timeout, connection, HTTP, 모델 오류 구분
 - [ ] 구조화 응답 파싱
 - [ ] 토큰 사용량 수집
 - [x] 근거 기반 시스템 Prompt
