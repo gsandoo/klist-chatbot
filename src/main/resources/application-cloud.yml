@@ -1,0 +1,54 @@
+spring:
+  config:
+    activate:
+      on-profile: cloud
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  elasticsearch:
+    uris: ${ELASTICSEARCH_URIS}
+    username: ${ELASTICSEARCH_USERNAME}
+    password: ${ELASTICSEARCH_PASSWORD}
+    connection-timeout: ${ELASTICSEARCH_CONNECTION_TIMEOUT:3s}
+    socket-timeout: ${ELASTICSEARCH_SOCKET_TIMEOUT:10s}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  sql:
+    init:
+      mode: never
+
+server:
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+tour-api:
+  service-key: ${TOUR_API_SERVICE_KEY:}
+  ingestion:
+    enabled: false
+    page-size: ${TOUR_API_INGESTION_PAGE_SIZE:100}
+    max-pages: ${TOUR_API_INGESTION_MAX_PAGES:0}
+    max-items: ${TOUR_API_INGESTION_MAX_ITEMS:0}
+    schedule:
+      enabled: ${TOUR_API_INGESTION_SCHEDULE_ENABLED:false}
+      cron: ${TOUR_API_INGESTION_SCHEDULE_CRON:0 0 3 * * *}
+      zone: ${TOUR_API_INGESTION_SCHEDULE_ZONE:Asia/Seoul}
+
+search:
+  tourist-spots:
+    alias: ${TOURIST_SPOT_INDEX_ALIAS:tourist-spots}
+    version: ${TOURIST_SPOT_INDEX_VERSION:v1}
+    reindex:
+      page-size: ${TOURIST_SPOT_REINDEX_PAGE_SIZE:500}
