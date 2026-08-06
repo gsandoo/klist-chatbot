@@ -28,6 +28,8 @@ class CloudRuntimeConfigurationTest {
         assertString(properties, "spring.jpa.hibernate.ddl-auto", "validate");
         assertString(properties, "spring.flyway.enabled", "true");
         assertString(properties, "server.shutdown", "graceful");
+        assertString(properties, "search.tourist-spots.bootstrap.mode",
+                "${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}");
     }
 
     @Test

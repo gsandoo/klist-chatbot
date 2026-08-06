@@ -34,6 +34,24 @@ TOUR_API_INGESTION_SCHEDULE_ZONE=Asia/Seoul
 Elasticsearch에는 `analysis-nori` 지원이 필요하다. 신규 환경에서는 애플리케이션 트래픽을 받기 전에
 버전 인덱스와 Alias를 만들고 PostgreSQL 원본 데이터를 전체 재색인해야 한다.
 
+배포 시 인덱스 시작 모드는 다음 환경변수로 선택한다.
+
+```text
+# 기본값. 인덱스를 변경하지 않는다.
+TOURIST_SPOT_INDEX_BOOTSTRAP_MODE=none
+
+# 현재 버전 인덱스와 Mapping 및 Alias를 멱등 생성한다.
+TOURIST_SPOT_INDEX_BOOTSTRAP_MODE=initialize
+
+# 신규 버전 인덱스에 PostgreSQL 전체 데이터를 색인한 뒤 Alias를 전환한다.
+TOURIST_SPOT_INDEX_BOOTSTRAP_MODE=reindex
+TOURIST_SPOT_INDEX_VERSION=v2
+```
+
+`reindex`에는 아직 존재하지 않는 새 버전을 지정해야 한다. 문서 변환이나 색인이 하나라도 실패하면
+Alias를 전환하지 않고 애플리케이션 시작을 실패시킨다. 초기 배포는 `initialize`, 데이터가 존재하는
+환경의 버전 교체 배포는 새 버전과 `reindex` 조합을 사용한다.
+
 실행 예시:
 
 ```text

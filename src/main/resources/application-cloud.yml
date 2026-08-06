@@ -50,5 +50,7 @@ search:
   tourist-spots:
     alias: ${TOURIST_SPOT_INDEX_ALIAS:tourist-spots}
     version: ${TOURIST_SPOT_INDEX_VERSION:v1}
+    bootstrap:
+      mode: ${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}
     reindex:
       page-size: ${TOURIST_SPOT_REINDEX_PAGE_SIZE:500}

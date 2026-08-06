@@ -10,7 +10,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration(proxyBeanMethods = false)
-@EnableConfigurationProperties(TouristSpotReindexProperties.class)
+@EnableConfigurationProperties({
+        TouristSpotReindexProperties.class,
+        TouristSpotIndexBootstrapProperties.class
+})
 public class TouristSpotReindexConfiguration {
 
     @Bean
@@ -29,5 +32,14 @@ public class TouristSpotReindexConfiguration {
                 properties,
                 Clock.systemUTC()
         );
+    }
+
+    @Bean
+    TouristSpotIndexBootstrapRunner touristSpotIndexBootstrapRunner(
+            TouristSpotIndexManager indexManager,
+            TouristSpotFullReindexService reindexService,
+            TouristSpotIndexBootstrapProperties properties
+    ) {
+        return new TouristSpotIndexBootstrapRunner(indexManager, reindexService, properties);
     }
 }

@@ -26,5 +26,7 @@ search:
     version: v1
     settings-location: classpath:elasticsearch/tourist-spots-settings.json
     mappings-location: classpath:elasticsearch/tourist-spots-mappings.json
+    bootstrap:
+      mode: ${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}
     reindex:
       page-size: ${TOURIST_SPOT_REINDEX_PAGE_SIZE:500}
