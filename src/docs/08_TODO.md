@@ -66,6 +66,8 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] 관광지 생성·수정 트랜잭션 커밋 후 단건 색인 및 갱신
 - [ ] 삭제 또는 비활성 관광지 색인 제거
 - [x] 전체 재색인 결과 Summary
+- [x] Elasticsearch 통합 테스트가 모두 Skip되면 빌드 실패
+- [x] Testcontainers PostgreSQL·Elasticsearch 실제 통합 테스트
 - [ ] 색인 실패 기록 및 재처리
 - [ ] PostgreSQL 원본 수정 시각과 색인 버전 비교
 
@@ -138,6 +140,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 
 ### P8. 오류, Retry 및 안정성
 
+- [x] Docker 비의존 Cloud Runtime 프로필과 환경변수 계약
 - [ ] Chatbot 공통 오류 타입
 - [ ] Elasticsearch 일시 장애 Retry
 - [ ] LLM timeout, connection, 일부 5xx Retry
