@@ -225,6 +225,11 @@ class TouristSpotIndexingIntegrationTest {
         var analysis = chatSearchResult.questionAnalysis();
         TouristSpotSearchResult result = chatSearchResult.touristSpotSearchResult();
 
+        assertThat(chatSearchResult.evidenceContext().touristSpots())
+                .extracting(evidence -> evidence.touristSpotId())
+                .containsExactlyElementsOf(result.evidence().stream()
+                        .map(evidence -> evidence.touristSpotId())
+                        .toList());
         assertThat(result.evidence())
                 .as("question=%s keyword=%s", question, analysis.normalizedKeyword())
                 .isNotEmpty();

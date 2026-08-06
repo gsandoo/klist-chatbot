@@ -9,6 +9,8 @@ import static org.mockito.Mockito.when;
 
 import com.klist.chatbot.chat.application.analysis.ChatQuestionAnalysis;
 import com.klist.chatbot.chat.application.analysis.ChatQuestionAnalyzer;
+import com.klist.chatbot.chat.application.evidence.ChatEvidenceContext;
+import com.klist.chatbot.chat.application.evidence.ChatSearchEvidenceOrganizer;
 import com.klist.chatbot.search.application.TouristSpotRetriever;
 import com.klist.chatbot.search.application.TouristSpotSearchCriteria;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
@@ -20,9 +22,11 @@ class ChatSearchOrchestratorTest {
 
     private final ChatQuestionAnalyzer questionAnalyzer = mock(ChatQuestionAnalyzer.class);
     private final TouristSpotRetriever touristSpotRetriever = mock(TouristSpotRetriever.class);
+    private final ChatSearchEvidenceOrganizer evidenceOrganizer = mock(ChatSearchEvidenceOrganizer.class);
     private final ChatSearchOrchestrator orchestrator = new ChatSearchOrchestrator(
             questionAnalyzer,
-            touristSpotRetriever
+            touristSpotRetriever,
+            evidenceOrganizer
     );
 
     @Test
@@ -43,13 +47,21 @@ class ChatSearchOrchestratorTest {
         );
         when(questionAnalyzer.analyze(question)).thenReturn(analysis);
         when(touristSpotRetriever.retrieve(criteria)).thenReturn(searchResult);
+        ChatEvidenceContext evidenceContext = new ChatEvidenceContext(
+                List.of(),
+                0,
+                Duration.ofMillis(3)
+        );
+        when(evidenceOrganizer.organize(searchResult)).thenReturn(evidenceContext);
 
         ChatSearchResult result = orchestrator.search(question);
 
         assertThat(result.questionAnalysis()).isSameAs(analysis);
         assertThat(result.touristSpotSearchResult()).isSameAs(searchResult);
+        assertThat(result.evidenceContext()).isSameAs(evidenceContext);
         verify(questionAnalyzer).analyze(question);
         verify(touristSpotRetriever).retrieve(criteria);
+        verify(evidenceOrganizer).organize(searchResult);
     }
 
     @Test
@@ -69,10 +81,13 @@ class ChatSearchOrchestratorTest {
         );
         when(questionAnalyzer.analyze("없는 장소")).thenReturn(analysis);
         when(touristSpotRetriever.retrieve(criteria)).thenReturn(emptyResult);
+        when(evidenceOrganizer.organize(emptyResult))
+                .thenReturn(new ChatEvidenceContext(List.of(), 0, Duration.ZERO));
 
         ChatSearchResult result = orchestrator.search("없는 장소");
 
         assertThat(result.touristSpotSearchResult().isEmpty()).isTrue();
+        assertThat(result.evidenceContext().isEmpty()).isTrue();
     }
 
     @Test
@@ -86,13 +101,20 @@ class ChatSearchOrchestratorTest {
     @Test
     void requiresCollaboratorsAndResultValues() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new ChatSearchOrchestrator(null, touristSpotRetriever))
+                .isThrownBy(() -> new ChatSearchOrchestrator(null, touristSpotRetriever, evidenceOrganizer))
                 .withMessage("questionAnalyzer must not be null");
         assertThatNullPointerException()
-                .isThrownBy(() -> new ChatSearchOrchestrator(questionAnalyzer, null))
+                .isThrownBy(() -> new ChatSearchOrchestrator(questionAnalyzer, null, evidenceOrganizer))
                 .withMessage("touristSpotRetriever must not be null");
         assertThatNullPointerException()
-                .isThrownBy(() -> new ChatSearchResult(null, mock(TouristSpotSearchResult.class)))
+                .isThrownBy(() -> new ChatSearchOrchestrator(questionAnalyzer, touristSpotRetriever, null))
+                .withMessage("evidenceOrganizer must not be null");
+        assertThatNullPointerException()
+                .isThrownBy(() -> new ChatSearchResult(
+                        null,
+                        mock(TouristSpotSearchResult.class),
+                        mock(ChatEvidenceContext.class)
+                ))
                 .withMessage("questionAnalysis must not be null");
     }
 

@@ -91,7 +91,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [ ] Chat 요청 검증
 - [x] 규칙 기반 질문 분석과 Elasticsearch 검색 조건 생성
 - [x] TouristSpot Retriever 연결
-- [ ] 검색 근거 정리
+- [x] 검색 근거 정리
 - [ ] Prompt 생성
 - [ ] LLM 호출
 - [ ] 응답 검증
