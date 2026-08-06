@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
@@ -17,6 +18,7 @@ import com.klist.chatbot.chat.application.llm.LlmGenerationResult;
 import com.klist.chatbot.chat.application.prompt.ChatPrompt;
 import java.net.SocketTimeoutException;
 import java.time.Duration;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,13 +38,19 @@ class OpenAiResponsesClientTest {
     private OpenAiLlmProperties properties;
     private MockRestServiceServer server;
     private OpenAiResponsesClient client;
+    private AtomicReference<Duration> requestedTimeout;
 
     @BeforeEach
     void setUp() {
         properties = enabledProperties();
         RestClient.Builder builder = RestClient.builder().baseUrl(BASE_URL);
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new OpenAiResponsesClient(builder.build(), new ObjectMapper(), properties);
+        RestClient restClient = builder.build();
+        requestedTimeout = new AtomicReference<>();
+        client = new OpenAiResponsesClient(timeout -> {
+            requestedTimeout.set(timeout);
+            return restClient;
+        }, new ObjectMapper(), properties);
     }
 
     @Test
@@ -61,6 +69,14 @@ class OpenAiResponsesClientTest {
                           "store": false
                         }
                         """))
+                .andExpect(jsonPath("$.text.format.type").value("json_schema"))
+                .andExpect(jsonPath("$.text.format.name").value("tourist_chat_answer"))
+                .andExpect(jsonPath("$.text.format.strict").value(true))
+                .andExpect(jsonPath("$.text.format.schema.additionalProperties").value(false))
+                .andExpect(jsonPath("$.text.format.schema.required[0]").value("answer"))
+                .andExpect(jsonPath("$.text.format.schema.required[1]").value("recommendations"))
+                .andExpect(jsonPath("$.text.format.schema.properties.recommendations.items"
+                        + ".properties.touristSpotId.minimum").value(1))
                 .andRespond(withSuccess("""
                         {
                           "id": "resp_123",
@@ -81,6 +97,7 @@ class OpenAiResponsesClientTest {
         assertThat(result.model()).isEqualTo("gpt-5.6-sol");
         assertThat(result.inputTokens()).isEqualTo(120);
         assertThat(result.outputTokens()).isEqualTo(30);
+        assertThat(requestedTimeout.get()).isEqualTo(Duration.ofSeconds(5));
         server.verify();
     }
 
@@ -115,7 +132,7 @@ class OpenAiResponsesClientTest {
                     throw new SocketTimeoutException("simulated timeout");
                 })
                 .build();
-        client = new OpenAiResponsesClient(timeoutClient, new ObjectMapper(), properties);
+        client = new OpenAiResponsesClient(timeout -> timeoutClient, new ObjectMapper(), properties);
 
         assertThatThrownBy(() -> client.generate(request()))
                 .isInstanceOfSatisfying(LlmClientException.class, exception -> {

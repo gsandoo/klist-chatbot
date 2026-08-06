@@ -14,6 +14,7 @@ import java.net.http.HttpTimeoutException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
@@ -21,16 +22,41 @@ import org.springframework.web.client.RestClient;
 
 public class OpenAiResponsesClient implements LlmClient {
 
-    private final RestClient restClient;
+    private static final Map<String, Object> CHAT_ANSWER_SCHEMA = Map.of(
+            "type", "object",
+            "additionalProperties", false,
+            "required", java.util.List.of("answer", "recommendations"),
+            "properties", Map.of(
+                    "answer", Map.of("type", "string", "minLength", 1),
+                    "recommendations", Map.of(
+                            "type", "array",
+                            "maxItems", 20,
+                            "items", Map.of(
+                                    "type", "object",
+                                    "additionalProperties", false,
+                                    "required", java.util.List.of("touristSpotId", "reason"),
+                                    "properties", Map.of(
+                                            "touristSpotId", Map.of("type", "integer", "minimum", 1),
+                                            "reason", Map.of("type", "string", "minLength", 1)
+                                    )
+                            )
+                    )
+            )
+    );
+
+    private final Function<java.time.Duration, RestClient> restClientFactory;
     private final ObjectMapper objectMapper;
     private final OpenAiLlmProperties properties;
 
     public OpenAiResponsesClient(
-            RestClient restClient,
+            Function<java.time.Duration, RestClient> restClientFactory,
             ObjectMapper objectMapper,
             OpenAiLlmProperties properties
     ) {
-        this.restClient = Objects.requireNonNull(restClient, "restClient must not be null");
+        this.restClientFactory = Objects.requireNonNull(
+                restClientFactory,
+                "restClientFactory must not be null"
+        );
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper must not be null");
         this.properties = Objects.requireNonNull(properties, "properties must not be null");
     }
@@ -40,7 +66,7 @@ public class OpenAiResponsesClient implements LlmClient {
         Objects.requireNonNull(request, "request must not be null");
         validateConfiguration();
         try {
-            String responseBody = restClient.post()
+            String responseBody = restClientFactory.apply(request.timeout()).post()
                     .uri("/responses")
                     .contentType(MediaType.APPLICATION_JSON)
                     .headers(headers -> headers.setBearerAuth(properties.getApiKey()))
@@ -61,6 +87,12 @@ public class OpenAiResponsesClient implements LlmClient {
         body.put("instructions", request.prompt().systemMessage());
         body.put("input", request.prompt().userMessage());
         body.put("reasoning", Map.of("effort", properties.getReasoningEffort()));
+        body.put("text", Map.of("format", Map.of(
+                "type", "json_schema",
+                "name", "tourist_chat_answer",
+                "strict", true,
+                "schema", CHAT_ANSWER_SCHEMA
+        )));
         body.put("max_output_tokens", properties.getMaxOutputTokens());
         body.put("store", false);
         return body;
