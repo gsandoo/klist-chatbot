@@ -78,11 +78,19 @@ tasks.register('liveTourApiTest', Test) {
 }
 
 tasks.register('elasticsearchTest', Test) {
-	description = 'Runs the Elasticsearch indexing integration tests with Testcontainers.'
+	description = 'Testcontainers를 사용한 Elasticsearch 통합 테스트를 실행합니다.'
 	group = 'verification'
 	testClassesDirs = sourceSets.test.output.classesDirs
 	classpath = sourceSets.test.runtimeClasspath
+	outputs.upToDateWhen { false }
 	useJUnitPlatform {
 		includeTags 'elasticsearch'
+	}
+	afterSuite { descriptor, result ->
+		if (descriptor.parent == null && result.successfulTestCount == 0) {
+			throw new GradleException(
+					'Elasticsearch 통합 테스트가 실행되지 않았습니다. Docker 실행 상태와 Testcontainers 설정을 확인하세요.'
+			)
+		}
 	}
 }
