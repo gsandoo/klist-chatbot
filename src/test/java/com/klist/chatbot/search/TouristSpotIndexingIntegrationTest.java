@@ -3,6 +3,7 @@ package com.klist.chatbot.search;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.klist.chatbot.chat.application.ChatSearchOrchestrator;
+import com.klist.chatbot.chat.application.prompt.ChatPromptPreparationStatus;
 import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchDocument;
 import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchCategory;
 import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchRegion;
@@ -225,6 +226,10 @@ class TouristSpotIndexingIntegrationTest {
         var analysis = chatSearchResult.questionAnalysis();
         TouristSpotSearchResult result = chatSearchResult.touristSpotSearchResult();
 
+        assertThat(chatSearchResult.promptPreparation().status())
+                .isEqualTo(ChatPromptPreparationStatus.READY);
+        assertThat(chatSearchResult.promptPreparation().prompt().userMessage())
+                .contains(question, "\"touristSpotId\":" + expectedTouristSpotId);
         assertThat(chatSearchResult.evidenceContext().touristSpots())
                 .extracting(evidence -> evidence.touristSpotId())
                 .containsExactlyElementsOf(result.evidence().stream()

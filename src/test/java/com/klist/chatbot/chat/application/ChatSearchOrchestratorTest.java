@@ -11,6 +11,8 @@ import com.klist.chatbot.chat.application.analysis.ChatQuestionAnalysis;
 import com.klist.chatbot.chat.application.analysis.ChatQuestionAnalyzer;
 import com.klist.chatbot.chat.application.evidence.ChatEvidenceContext;
 import com.klist.chatbot.chat.application.evidence.ChatSearchEvidenceOrganizer;
+import com.klist.chatbot.chat.application.prompt.ChatPromptFactory;
+import com.klist.chatbot.chat.application.prompt.ChatPromptPreparation;
 import com.klist.chatbot.search.application.TouristSpotRetriever;
 import com.klist.chatbot.search.application.TouristSpotSearchCriteria;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
@@ -23,10 +25,12 @@ class ChatSearchOrchestratorTest {
     private final ChatQuestionAnalyzer questionAnalyzer = mock(ChatQuestionAnalyzer.class);
     private final TouristSpotRetriever touristSpotRetriever = mock(TouristSpotRetriever.class);
     private final ChatSearchEvidenceOrganizer evidenceOrganizer = mock(ChatSearchEvidenceOrganizer.class);
+    private final ChatPromptFactory promptFactory = mock(ChatPromptFactory.class);
     private final ChatSearchOrchestrator orchestrator = new ChatSearchOrchestrator(
             questionAnalyzer,
             touristSpotRetriever,
-            evidenceOrganizer
+            evidenceOrganizer,
+            promptFactory
     );
 
     @Test
@@ -53,15 +57,19 @@ class ChatSearchOrchestratorTest {
                 Duration.ofMillis(3)
         );
         when(evidenceOrganizer.organize(searchResult)).thenReturn(evidenceContext);
+        ChatPromptPreparation promptPreparation = ChatPromptPreparation.noEvidence();
+        when(promptFactory.prepare(question, evidenceContext)).thenReturn(promptPreparation);
 
         ChatSearchResult result = orchestrator.search(question);
 
         assertThat(result.questionAnalysis()).isSameAs(analysis);
         assertThat(result.touristSpotSearchResult()).isSameAs(searchResult);
         assertThat(result.evidenceContext()).isSameAs(evidenceContext);
+        assertThat(result.promptPreparation()).isSameAs(promptPreparation);
         verify(questionAnalyzer).analyze(question);
         verify(touristSpotRetriever).retrieve(criteria);
         verify(evidenceOrganizer).organize(searchResult);
+        verify(promptFactory).prepare(question, evidenceContext);
     }
 
     @Test
@@ -81,13 +89,18 @@ class ChatSearchOrchestratorTest {
         );
         when(questionAnalyzer.analyze("없는 장소")).thenReturn(analysis);
         when(touristSpotRetriever.retrieve(criteria)).thenReturn(emptyResult);
-        when(evidenceOrganizer.organize(emptyResult))
-                .thenReturn(new ChatEvidenceContext(List.of(), 0, Duration.ZERO));
+        ChatEvidenceContext emptyContext = new ChatEvidenceContext(List.of(), 0, Duration.ZERO);
+        when(evidenceOrganizer.organize(emptyResult)).thenReturn(emptyContext);
+        when(promptFactory.prepare("없는 장소", emptyContext))
+                .thenReturn(ChatPromptPreparation.noEvidence());
 
         ChatSearchResult result = orchestrator.search("없는 장소");
 
         assertThat(result.touristSpotSearchResult().isEmpty()).isTrue();
         assertThat(result.evidenceContext().isEmpty()).isTrue();
+        assertThat(result.promptPreparation().status()).isEqualTo(
+                com.klist.chatbot.chat.application.prompt.ChatPromptPreparationStatus.NO_EVIDENCE
+        );
     }
 
     @Test
@@ -101,19 +114,31 @@ class ChatSearchOrchestratorTest {
     @Test
     void requiresCollaboratorsAndResultValues() {
         assertThatNullPointerException()
-                .isThrownBy(() -> new ChatSearchOrchestrator(null, touristSpotRetriever, evidenceOrganizer))
+                .isThrownBy(() -> new ChatSearchOrchestrator(
+                        null, touristSpotRetriever, evidenceOrganizer, promptFactory
+                ))
                 .withMessage("questionAnalyzer must not be null");
         assertThatNullPointerException()
-                .isThrownBy(() -> new ChatSearchOrchestrator(questionAnalyzer, null, evidenceOrganizer))
+                .isThrownBy(() -> new ChatSearchOrchestrator(
+                        questionAnalyzer, null, evidenceOrganizer, promptFactory
+                ))
                 .withMessage("touristSpotRetriever must not be null");
         assertThatNullPointerException()
-                .isThrownBy(() -> new ChatSearchOrchestrator(questionAnalyzer, touristSpotRetriever, null))
+                .isThrownBy(() -> new ChatSearchOrchestrator(
+                        questionAnalyzer, touristSpotRetriever, null, promptFactory
+                ))
                 .withMessage("evidenceOrganizer must not be null");
+        assertThatNullPointerException()
+                .isThrownBy(() -> new ChatSearchOrchestrator(
+                        questionAnalyzer, touristSpotRetriever, evidenceOrganizer, null
+                ))
+                .withMessage("promptFactory must not be null");
         assertThatNullPointerException()
                 .isThrownBy(() -> new ChatSearchResult(
                         null,
                         mock(TouristSpotSearchResult.class),
-                        mock(ChatEvidenceContext.class)
+                        mock(ChatEvidenceContext.class),
+                        ChatPromptPreparation.noEvidence()
                 ))
                 .withMessage("questionAnalysis must not be null");
     }
