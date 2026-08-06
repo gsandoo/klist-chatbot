@@ -96,7 +96,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] LLM 호출
 - [x] 응답 검증
 - [x] 추천 관광지 ID가 검색 결과에 포함되는지 검증
-- [ ] 처리 시간과 결과 메타데이터 집계
+- [x] 검색·LLM·전체 처리 시간과 결과 메타데이터 집계
 
 ### P4. LLM Client와 Prompt
 
@@ -106,7 +106,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] timeout, connection, HTTP, 모델 오류 구분
 - [x] 요청 잔여 timeout을 LLM 네트워크 연결·응답 timeout에 적용
 - [x] 구조화 응답 파싱
-- [ ] 토큰 사용량 수집
+- [x] LLM 입력·출력 토큰 사용량 수집
 - [x] 근거 기반 시스템 Prompt
 - [x] 검색 근거에 없는 사실 생성 방지
 - [x] URL, 운영시간, 가격 추측 방지
@@ -118,7 +118,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] Backend 전용 JSON Chat API를 실제 Completion 처리 흐름에 연결
 - [ ] Backend 전용 서비스 인증
 - [ ] 외부 Client 직접 접근 차단
-- [ ] 요청 추적 ID 로깅
+- [x] 요청 traceId MDC 로깅
 - [x] API timeout 정책
 - [x] Chatbot 오류를 Backend 오류 계약으로 변환
 - [ ] Backend 연동 통합 테스트
@@ -146,10 +146,10 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 
 - [x] Docker 비의존 Cloud Runtime 프로필과 환경변수 계약
 - [ ] Chatbot 공통 오류 타입
-- [ ] Elasticsearch 일시 장애 Retry
-- [ ] LLM timeout, connection, 일부 5xx Retry
-- [ ] Retry 비대상 오류 구분
-- [ ] 지수 Backoff
+- [x] Elasticsearch 일시 장애 Retry와 지수 Backoff
+- [x] LLM timeout, connection, 일부 5xx Retry
+- [x] Retry 비대상 오류 구분
+- [x] LLM 지수 Backoff와 요청 timeout 예산 제한
 - [ ] Circuit Breaker 필요성 검토
 - [ ] TourAPI 호출 간격 및 Retry 정책
 - [ ] 다중 인스턴스 Scheduler 분산 잠금
@@ -163,8 +163,8 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [ ] LLM 응답 시간
 - [ ] 검색 결과 없음 비율
 - [ ] LLM 오류율
-- [ ] 토큰 사용량
-- [ ] Actuator 및 Micrometer
+- [x] 검색·LLM·전체 처리 시간 및 토큰 사용량 Micrometer 지표
+- [x] Actuator 및 Micrometer 기반 외부 연동 재시도·소진 지표
 - [ ] 구조화 로그와 요청 추적
 
 ### P10. 단계적 운영 검증
