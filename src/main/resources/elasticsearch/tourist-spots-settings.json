@@ -1,0 +1,57 @@
+{
+  "index": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "refresh_interval": "1s"
+  },
+  "analysis": {
+    "tokenizer": {
+      "korean_nori_tokenizer": {
+        "type": "nori_tokenizer",
+        "decompound_mode": "mixed",
+        "discard_punctuation": true
+      }
+    },
+    "filter": {
+      "korean_pos_filter": {
+        "type": "nori_part_of_speech",
+        "stoptags": [
+          "IC",
+          "MAG",
+          "MAJ",
+          "MM",
+          "SP",
+          "SSC",
+          "SSO",
+          "SC",
+          "SE",
+          "XPN",
+          "XSA",
+          "XSN",
+          "XSV",
+          "UNA",
+          "NA",
+          "VSV"
+        ]
+      }
+    },
+    "analyzer": {
+      "korean_index": {
+        "type": "custom",
+        "tokenizer": "korean_nori_tokenizer",
+        "filter": [
+          "korean_pos_filter",
+          "lowercase"
+        ]
+      },
+      "korean_search": {
+        "type": "custom",
+        "tokenizer": "korean_nori_tokenizer",
+        "filter": [
+          "korean_pos_filter",
+          "lowercase"
+        ]
+      }
+    }
+  }
+}

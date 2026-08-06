@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: klist-chatbot
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+
+tour-api:
+  base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}
+  service-key: ${TOUR_API_SERVICE_KEY:}
+  mobile-os: ${TOUR_API_MOBILE_OS:ETC}
+  mobile-app: ${TOUR_API_MOBILE_APP:klist-chatbot}
+  response-type: json
+  connect-timeout: ${TOUR_API_CONNECT_TIMEOUT:3s}
+  response-timeout: ${TOUR_API_RESPONSE_TIMEOUT:5s}
+
+search:
+  tourist-spots:
+    alias: tourist-spots
+    version: v1
+    settings-location: classpath:elasticsearch/tourist-spots-settings.json
+    mappings-location: classpath:elasticsearch/tourist-spots-mappings.json
+    bootstrap:
+      mode: ${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}
+    reindex:
+      page-size: ${TOURIST_SPOT_REINDEX_PAGE_SIZE:500}

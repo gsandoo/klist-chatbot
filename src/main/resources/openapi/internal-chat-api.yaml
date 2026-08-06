@@ -1,0 +1,211 @@
+openapi: 3.1.0
+info:
+  title: KList Backend-Chatbot Internal API
+  version: 1.0.0
+  description: |
+    Backend 서버가 Chatbot 서버에 관광 질의를 전달하기 위한 내부 API다.
+    이 API는 외부 Client에 직접 노출하지 않는다.
+servers:
+  - url: http://chatbot-service
+    description: Internal service network
+paths:
+  /internal/chat/query:
+    post:
+      operationId: queryChatbot
+      summary: 관광 챗봇 질의
+      description: |
+        검색과 LLM 처리를 수행하고 근거 관광지와 함께 답변을 반환한다.
+        timeoutMs는 Chatbot 내부 처리 시간 예산이며 기본값은 5000ms다.
+        Backend HTTP Client timeout은 네트워크 여유를 포함해 이 값보다 길게 설정한다.
+      parameters:
+        - $ref: '#/components/parameters/TraceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatQueryRequest'
+            example:
+              sessionId: session-20260727-001
+              userId: user-1004
+              message: 서울에서 아이와 방문할 실내 관광지를 추천해줘
+              timeoutMs: 5000
+      responses:
+        '200':
+          description: 질의 처리 완료
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatQueryResponse'
+        '400':
+          description: 요청 검증 실패 또는 읽을 수 없는 요청
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: 검색 또는 LLM 처리가 제한 시간을 초과함
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: 검색 및 LLM 처리 구현이 준비되지 않았거나 일시적으로 사용 불가함
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Chatbot 내부 처리 실패
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  parameters:
+    TraceId:
+      name: X-Trace-Id
+      in: header
+      required: false
+      description: |
+        Backend가 생성한 요청 추적 ID다. 누락되거나 100자를 초과하면 Chatbot이 UUID를 생성한다.
+      schema:
+        type: string
+        maxLength: 100
+  headers:
+    TraceId:
+      description: 요청 전체 구간에서 사용하는 추적 ID
+      schema:
+        type: string
+  schemas:
+    ChatQueryRequest:
+      type: object
+      required:
+        - sessionId
+        - userId
+        - message
+      properties:
+        sessionId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        userId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        message:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        timeoutMs:
+          type: integer
+          minimum: 100
+          maximum: 30000
+          default: 5000
+    ChatQueryResponse:
+      type: object
+      required:
+        - answer
+        - sources
+        - traceId
+        - status
+        - processingTimeMs
+      properties:
+        answer:
+          type: string
+        sources:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatSource'
+        traceId:
+          type: string
+        status:
+          $ref: '#/components/schemas/ChatQueryStatus'
+        processingTimeMs:
+          type: integer
+          format: int64
+          minimum: 0
+    ChatSource:
+      type: object
+      required:
+        - touristSpotId
+        - title
+        - type
+      properties:
+        touristSpotId:
+          type: integer
+          format: int64
+        title:
+          type: string
+        type:
+          type: string
+          enum:
+            - TOURIST_SPOT
+        score:
+          type:
+            - number
+            - 'null'
+          format: double
+        referenceUrl:
+          type:
+            - string
+            - 'null'
+          format: uri
+    ChatQueryStatus:
+      type: string
+      enum:
+        - COMPLETED
+        - NO_RESULT
+    ErrorResponse:
+      type: object
+      required:
+        - code
+        - message
+        - traceId
+        - timestamp
+        - errors
+      properties:
+        code:
+          type: string
+          enum:
+            - INVALID_REQUEST
+            - CHAT_QUERY_TIMEOUT
+            - CHAT_PROCESSING_UNAVAILABLE
+            - CHAT_PROCESSING_FAILED
+            - INTERNAL_ERROR
+        message:
+          type: string
+        traceId:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        errors:
+          type: array
+          items:
+            $ref: '#/components/schemas/FieldViolation'
+    FieldViolation:
+      type: object
+      required:
+        - field
+        - reason
+      properties:
+        field:
+          type: string
+        reason:
+          type: string
