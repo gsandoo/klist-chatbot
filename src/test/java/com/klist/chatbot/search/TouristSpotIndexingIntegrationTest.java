@@ -12,6 +12,10 @@ import com.klist.chatbot.search.application.TouristSpotSearchCriteria;
 import com.klist.chatbot.search.application.TouristSpotSearchGateway;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
 import com.klist.chatbot.search.fixture.TouristSpotSearchQualityFixture;
+import com.klist.chatbot.search.fixture.TourApiSampleSearchQualityFixture;
+import com.klist.chatbot.search.fixture.TouristSpotSearchQualityEvaluator;
+import com.klist.chatbot.search.fixture.SearchQualityCase;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -174,6 +178,29 @@ class TouristSpotIndexingIntegrationTest {
                 }
             }
         });
+    }
+
+    @Test
+    void reportsTopOneAndTopThreeQualityByRegionAndContentTypeUsingTourApiSamples() {
+        var tourApiSamples = TourApiSampleSearchQualityFixture.load();
+        List<TouristSpotSearchDocument> documents = new ArrayList<>(TouristSpotSearchQualityFixture.documents());
+        documents.addAll(tourApiSamples.documents());
+        gateway.saveAll(documents);
+        operations.indexOps(IndexCoordinates.of("tourist-spots-v1")).refresh();
+
+        List<SearchQualityCase> cases = new ArrayList<>(TouristSpotSearchQualityFixture.cases());
+        cases.addAll(tourApiSamples.cases());
+        var evaluation = TouristSpotSearchQualityEvaluator.evaluate(cases, searchGateway);
+
+        assertThat(evaluation.overall().total()).isEqualTo(14);
+        assertThat(evaluation.overall().top1Rate()).isGreaterThanOrEqualTo(0.9);
+        assertThat(evaluation.overall().top3Rate()).isEqualTo(1.0);
+        assertThat(evaluation.byRegion()).containsKeys("서울", "부산", "제주");
+        assertThat(evaluation.byRegion().values())
+                .allSatisfy(metrics -> assertThat(metrics.top3Rate()).isEqualTo(1.0));
+        assertThat(evaluation.byContentType()).containsKeys("12", "14", "15", "25", "28", "32", "38", "39");
+        assertThat(evaluation.byContentType().values())
+                .allSatisfy(metrics -> assertThat(metrics.top3Rate()).isEqualTo(1.0));
     }
 
     private static TouristSpotSearchDocument document(Long id, String title) {
