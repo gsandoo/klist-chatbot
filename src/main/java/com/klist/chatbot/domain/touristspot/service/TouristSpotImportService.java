@@ -27,6 +27,7 @@ public class TouristSpotImportService implements TouristSpotImporter {
     private final CategoryPersistenceResolver categoryPersistenceResolver;
     private final RegionPersistenceResolver regionPersistenceResolver;
     private final TouristSpotRepository touristSpotRepository;
+    private final TouristSpotChangePublisher touristSpotChangePublisher;
 
     @Transactional
     @Override
@@ -96,6 +97,7 @@ public class TouristSpotImportService implements TouristSpotImporter {
                 .lastSyncedAt(LocalDateTime.now())
                 .build();
         TouristSpot saved = touristSpotRepository.save(touristSpot);
+        touristSpotChangePublisher.publishChanged(saved.getId());
         return TouristSpotImportResult.of(
                 data.tourApiContentId(),
                 TouristSpotImportStatus.CREATED,
@@ -177,6 +179,7 @@ public class TouristSpotImportService implements TouristSpotImporter {
                 data.sourceModifiedAt(),
                 LocalDateTime.now()
         );
+        touristSpotChangePublisher.publishChanged(existing.getId());
         return TouristSpotImportResult.of(
                 data.tourApiContentId(),
                 TouristSpotImportStatus.UPDATED,

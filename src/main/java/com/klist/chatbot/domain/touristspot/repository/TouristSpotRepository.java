@@ -6,6 +6,8 @@ import java.util.Optional;
 
 public interface TouristSpotRepository {
 
+    Optional<TouristSpot> findById(Long id);
+
     Optional<TouristSpot> findByTourApiContentId(Long tourApiContentId);
 
     TouristSpot save(TouristSpot touristSpot);

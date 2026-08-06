@@ -158,6 +158,8 @@ Spring 설정에서 Client, Collector, Orchestrator와 Ingestion Service가 등�
 Collector와 Client는 DB 스키마를 알지 못한다. Flyway는 PostgreSQL의 Entity 대응 테이블과 제약을
 관리하고, 적재는 기존 `TouristSpotImporter` 트랜잭션에서 수행한다.
 
-향후 Flyway 도입 시에도 수집과 정규화 계층은 변경하지 않는다. PostgreSQL 저장이 성공한 후
-Elasticsearch 동기화를 추가할 경우 Orchestrator 내부의 외부 호출이 아니라 after-commit 이벤트
-또는 outbox 경계를 사용한다.
+Flyway를 사용해도 수집과 정규화 계층은 변경하지 않는다. PostgreSQL에 관광지가 생성되거나 수정되면
+도메인 입력 Service가 변경 이벤트를 발행하고, `AFTER_COMMIT` 리스너가 최신 원본을 다시 조회해
+Elasticsearch 단건 색인을 수행한다. 따라서 Elasticsearch 장애가 이미 성공한 PostgreSQL 트랜잭션을
+롤백시키지 않는다. 현재 실패는 결과 상태와 로그로 격리하며, 영속 실패 이력과 자동 재처리는 후속
+작업으로 남아 있다.

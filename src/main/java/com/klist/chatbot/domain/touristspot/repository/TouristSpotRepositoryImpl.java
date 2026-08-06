@@ -1,8 +1,8 @@
 package com.klist.chatbot.domain.touristspot.repository;
 
 import com.klist.chatbot.domain.touristspot.domain.entity.TouristSpot;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
@@ -12,6 +12,11 @@ import org.springframework.stereotype.Repository;
 public class TouristSpotRepositoryImpl implements TouristSpotRepository {
 
     private final TouristSpotJpaRepository touristSpotJpaRepository;
+
+    @Override
+    public Optional<TouristSpot> findById(Long id) {
+        return touristSpotJpaRepository.findById(id);
+    }
 
     @Override
     public Optional<TouristSpot> findByTourApiContentId(Long tourApiContentId) {

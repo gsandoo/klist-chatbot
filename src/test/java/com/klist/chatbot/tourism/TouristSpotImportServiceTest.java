@@ -1,6 +1,7 @@
 package com.klist.chatbot.tourism;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 
 import com.klist.chatbot.domain.category.domain.entity.Category;
 import com.klist.chatbot.domain.category.repository.CategoryRepository;
@@ -14,6 +15,7 @@ import com.klist.chatbot.domain.touristspot.domain.entity.TouristSpot;
 import com.klist.chatbot.domain.touristspot.repository.TouristSpotRepository;
 import com.klist.chatbot.domain.touristspot.repository.TouristSpotRepositoryImpl;
 import com.klist.chatbot.domain.touristspot.service.TouristSpotImportService;
+import com.klist.chatbot.domain.touristspot.service.TouristSpotChangePublisher;
 import com.klist.chatbot.domain.touristspot.service.result.TouristSpotImportResult;
 import com.klist.chatbot.domain.touristspot.service.result.TouristSpotImportStatus;
 import com.klist.chatbot.domain.touristspot.service.result.TouristSpotImportSummary;
@@ -31,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @DataJpaTest
 @Import({
@@ -59,6 +62,9 @@ class TouristSpotImportServiceTest {
     @Autowired
     private EntityManager entityManager;
 
+    @MockitoBean
+    private TouristSpotChangePublisher touristSpotChangePublisher;
+
     @Test
     void createsNewTouristSpot() {
         Category category = categoryRepository.save(category(12, "A01010400"));
@@ -72,6 +78,7 @@ class TouristSpotImportServiceTest {
         assertThat(result.status()).isEqualTo(TouristSpotImportStatus.CREATED);
         assertThat(saved.getCategoryId()).isEqualTo(category.getId());
         assertThat(saved.getRegionId()).isEqualTo(region.getId());
+        verify(touristSpotChangePublisher).publishChanged(saved.getId());
     }
 
     @Test
@@ -82,6 +89,7 @@ class TouristSpotImportServiceTest {
         TouristSpotImportResult result = touristSpotImportService.importOne(success(importData(126480L)));
 
         assertThat(result.status()).isEqualTo(TouristSpotImportStatus.SKIPPED_NOT_MODIFIED);
+        verify(touristSpotChangePublisher).publishChanged(result.entityId());
     }
 
     @Test
@@ -98,6 +106,7 @@ class TouristSpotImportServiceTest {
         assertThat(result.status()).isEqualTo(TouristSpotImportStatus.UPDATED);
         assertThat(updated.getName()).isEqualTo("Updated name");
         assertThat(updated.getDescription()).isEqualTo("Updated description");
+        verify(touristSpotChangePublisher, org.mockito.Mockito.times(2)).publishChanged(updated.getId());
     }
 
     @Test
@@ -135,7 +144,9 @@ class TouristSpotImportServiceTest {
         TouristSpotImportService service = new TouristSpotImportService(
                 new CategoryPersistenceResolver(new NoopCategoryRepository()),
                 new RegionPersistenceResolver(new NoopRegionRepository()),
-                touristSpotRepository
+                touristSpotRepository,
+                touristSpotId -> {
+                }
         );
 
         TouristSpotImportResult result = service.importOne(success(importData(126480L)));
@@ -353,6 +364,11 @@ class TouristSpotImportServiceTest {
 
         private InMemoryTouristSpotRepository(TouristSpot saved) {
             this.saved = saved;
+        }
+
+        @Override
+        public Optional<TouristSpot> findById(Long id) {
+            return Optional.ofNullable(saved).filter(spot -> id.equals(spot.getId()));
         }
 
         @Override
