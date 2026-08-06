@@ -1,0 +1,76 @@
+package com.klist.chatbot.chat.application;
+
+import com.klist.chatbot.chat.application.answer.ChatGeneratedAnswer;
+import com.klist.chatbot.chat.application.answer.ChatGeneratedAnswerValidator;
+import com.klist.chatbot.chat.application.answer.ChatLlmResponseParser;
+import com.klist.chatbot.chat.application.llm.LlmClient;
+import com.klist.chatbot.chat.application.llm.LlmGenerationRequest;
+import com.klist.chatbot.chat.application.llm.LlmGenerationResult;
+import com.klist.chatbot.chat.application.prompt.ChatPrompt;
+import java.time.Duration;
+import java.util.Objects;
+import java.util.function.LongSupplier;
+
+public class ChatCompletionOrchestrator {
+
+    private final ChatSearchOrchestrator searchOrchestrator;
+    private final LlmClient llmClient;
+    private final ChatLlmResponseParser responseParser;
+    private final ChatGeneratedAnswerValidator answerValidator;
+    private final LongSupplier nanoTime;
+
+    public ChatCompletionOrchestrator(
+            ChatSearchOrchestrator searchOrchestrator,
+            LlmClient llmClient,
+            ChatLlmResponseParser responseParser,
+            ChatGeneratedAnswerValidator answerValidator
+    ) {
+        this(searchOrchestrator, llmClient, responseParser, answerValidator, System::nanoTime);
+    }
+
+    ChatCompletionOrchestrator(
+            ChatSearchOrchestrator searchOrchestrator,
+            LlmClient llmClient,
+            ChatLlmResponseParser responseParser,
+            ChatGeneratedAnswerValidator answerValidator,
+            LongSupplier nanoTime
+    ) {
+        this.searchOrchestrator = Objects.requireNonNull(
+                searchOrchestrator,
+                "searchOrchestrator must not be null"
+        );
+        this.llmClient = Objects.requireNonNull(llmClient, "llmClient must not be null");
+        this.responseParser = Objects.requireNonNull(
+                responseParser,
+                "responseParser must not be null"
+        );
+        this.answerValidator = Objects.requireNonNull(
+                answerValidator,
+                "answerValidator must not be null"
+        );
+        this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime must not be null");
+    }
+
+    public ChatCompletionResult complete(String question, Duration timeout) {
+        ChatProcessingDeadline deadline = new ChatProcessingDeadline(timeout, nanoTime);
+        ChatSearchResult searchResult = searchOrchestrator.search(question);
+        Duration remainingTimeout = deadline.remaining("search");
+        if (searchResult.promptPreparation().optionalPrompt().isEmpty()) {
+            return ChatCompletionResult.noEvidence(searchResult);
+        }
+
+        ChatPrompt prompt = searchResult.promptPreparation().prompt();
+        LlmGenerationResult generationResult = llmClient.generate(
+                new LlmGenerationRequest(prompt, remainingTimeout)
+        );
+        deadline.check("LLM generation");
+        ChatGeneratedAnswer parsedAnswer = responseParser.parse(generationResult);
+        deadline.check("response parsing");
+        ChatGeneratedAnswer validatedAnswer = answerValidator.validate(
+                parsedAnswer,
+                searchResult.evidenceContext()
+        );
+        deadline.check("response validation");
+        return ChatCompletionResult.completed(searchResult, generationResult, validatedAnswer);
+    }
+}

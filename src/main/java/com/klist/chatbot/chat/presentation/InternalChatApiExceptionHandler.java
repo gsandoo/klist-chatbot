@@ -1,6 +1,7 @@
 package com.klist.chatbot.chat.presentation;
 
 import com.klist.chatbot.chat.application.ChatQueryTimeoutException;
+import com.klist.chatbot.chat.application.ChatProcessingFailedException;
 import com.klist.chatbot.chat.application.ChatProcessingUnavailableException;
 import com.klist.chatbot.chat.presentation.error.InternalApiErrorResponse;
 import com.klist.chatbot.chat.presentation.error.InternalApiErrorResponse.FieldViolation;
@@ -84,6 +85,23 @@ public class InternalChatApiExceptionHandler {
                 InternalApiErrorResponse.of(
                         InternalChatApiErrorCode.CHAT_PROCESSING_UNAVAILABLE.name(),
                         "Chat processing is not available.",
+                        traceId
+                )
+        );
+    }
+
+    @ExceptionHandler(ChatProcessingFailedException.class)
+    ResponseEntity<InternalApiErrorResponse> handleProcessingFailed(
+            ChatProcessingFailedException exception,
+            HttpServletRequest request
+    ) {
+        String traceId = traceId(request);
+        return response(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                traceId,
+                InternalApiErrorResponse.of(
+                        InternalChatApiErrorCode.CHAT_PROCESSING_FAILED.name(),
+                        "The chatbot response could not be validated.",
                         traceId
                 )
         );

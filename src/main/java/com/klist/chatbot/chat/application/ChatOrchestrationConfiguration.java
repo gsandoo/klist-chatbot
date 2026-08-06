@@ -1,12 +1,17 @@
 package com.klist.chatbot.chat.application;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.klist.chatbot.chat.application.answer.ChatGeneratedAnswerValidator;
+import com.klist.chatbot.chat.application.answer.ChatLlmResponseParser;
 import com.klist.chatbot.chat.application.analysis.ChatQuestionAnalyzer;
 import com.klist.chatbot.chat.application.evidence.ChatSearchEvidenceOrganizer;
+import com.klist.chatbot.chat.application.llm.LlmClient;
 import com.klist.chatbot.chat.application.prompt.ChatPromptFactory;
 import com.klist.chatbot.search.application.TouristSpotRetriever;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 @Configuration(proxyBeanMethods = false)
 public class ChatOrchestrationConfiguration {
@@ -19,6 +24,41 @@ public class ChatOrchestrationConfiguration {
     @Bean
     ChatPromptFactory chatPromptFactory() {
         return new ChatPromptFactory(new ObjectMapper());
+    }
+
+    @Bean
+    ChatLlmResponseParser chatLlmResponseParser() {
+        return new ChatLlmResponseParser(new ObjectMapper());
+    }
+
+    @Bean
+    ChatGeneratedAnswerValidator chatGeneratedAnswerValidator() {
+        return new ChatGeneratedAnswerValidator();
+    }
+
+    @Bean
+    @ConditionalOnProperty(prefix = "llm.openai", name = "enabled", havingValue = "true")
+    ChatCompletionOrchestrator chatCompletionOrchestrator(
+            ChatSearchOrchestrator searchOrchestrator,
+            LlmClient llmClient,
+            ChatLlmResponseParser responseParser,
+            ChatGeneratedAnswerValidator answerValidator
+    ) {
+        return new ChatCompletionOrchestrator(
+                searchOrchestrator,
+                llmClient,
+                responseParser,
+                answerValidator
+        );
+    }
+
+    @Bean
+    @Primary
+    @ConditionalOnProperty(prefix = "llm.openai", name = "enabled", havingValue = "true")
+    InternalChatQueryUseCase internalChatQueryService(
+            ChatCompletionOrchestrator completionOrchestrator
+    ) {
+        return new InternalChatQueryService(completionOrchestrator);
     }
 
     @Bean

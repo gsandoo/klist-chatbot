@@ -9,6 +9,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.klist.chatbot.chat.application.ChatQueryTimeoutException;
+import com.klist.chatbot.chat.application.ChatProcessingFailedException;
+import com.klist.chatbot.chat.application.ChatProcessingUnavailableException;
 import com.klist.chatbot.chat.application.InternalChatQueryUseCase;
 import com.klist.chatbot.chat.presentation.dto.ChatQueryStatus;
 import com.klist.chatbot.chat.presentation.dto.ChatSourceResponse;
@@ -115,6 +117,45 @@ class InternalChatQueryControllerContractTest {
     }
 
     @Test
+    void returnsSafeProcessingFailedErrorUsingSameTraceId() throws Exception {
+        when(chatQueryUseCase.query(any(), eq(TRACE_ID)))
+                .thenThrow(new ChatProcessingFailedException(
+                        "sensitive provider response",
+                        new RuntimeException("raw model output")
+                ));
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest()))
+                .andExpect(status().isInternalServerError())
+                .andExpect(header().string("X-Trace-Id", TRACE_ID))
+                .andExpect(jsonPath("$.code").value("CHAT_PROCESSING_FAILED"))
+                .andExpect(jsonPath("$.message").value(
+                        "The chatbot response could not be validated."
+                ))
+                .andExpect(jsonPath("$.traceId").value(TRACE_ID))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .content().string(org.hamcrest.Matchers.not(
+                                org.hamcrest.Matchers.containsString("sensitive provider response")
+                        )));
+    }
+
+    @Test
+    void returnsServiceUnavailableForLlmAvailabilityFailure() throws Exception {
+        when(chatQueryUseCase.query(any(), eq(TRACE_ID)))
+                .thenThrow(new ChatProcessingUnavailableException("provider unavailable"));
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("CHAT_PROCESSING_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("Chat processing is not available."));
+    }
+
+    @Test
     void generatesTraceIdWhenBackendDoesNotProvideOne() throws Exception {
         when(chatQueryUseCase.query(any(), any())).thenAnswer(invocation -> {
             String generatedTraceId = invocation.getArgument(1);
@@ -141,5 +182,16 @@ class InternalChatQueryControllerContractTest {
                 .andExpect(jsonPath("$.traceId").isNotEmpty())
                 .andExpect(jsonPath("$.status").value("NO_RESULT"))
                 .andExpect(jsonPath("$.sources").isEmpty());
+    }
+
+    private static String validRequest() {
+        return """
+                {
+                  "sessionId": "session-001",
+                  "userId": "user-001",
+                  "message": "서울 관광지를 추천해줘",
+                  "timeoutMs": 5000
+                }
+                """;
     }
 }

@@ -5,4 +5,8 @@ public class ChatProcessingUnavailableException extends RuntimeException {
     public ChatProcessingUnavailableException(String message) {
         super(message);
     }
+
+    public ChatProcessingUnavailableException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }
