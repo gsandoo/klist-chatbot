@@ -31,6 +31,10 @@ class CloudRuntimeConfigurationTest {
         assertString(properties, "server.shutdown", "graceful");
         assertString(properties, "search.tourist-spots.bootstrap.mode",
                 "${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}");
+        assertString(properties, "search.tourist-spots.cache.enabled",
+                "${TOURIST_SPOT_SEARCH_CACHE_ENABLED:true}");
+        assertString(properties, "search.tourist-spots.cache.ttl",
+                "${TOURIST_SPOT_SEARCH_CACHE_TTL:5m}");
         assertString(properties, "logging.structured.format.console",
                 "${LOGGING_STRUCTURED_FORMAT_CONSOLE:logstash}");
         assertString(properties, "logging.structured.json.context.include", "true");

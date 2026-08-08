@@ -37,6 +37,10 @@ search:
     retry-max-attempts: ${ELASTICSEARCH_SEARCH_RETRY_MAX_ATTEMPTS:3}
     retry-initial-backoff: ${ELASTICSEARCH_SEARCH_RETRY_INITIAL_BACKOFF:100ms}
     retry-max-backoff: ${ELASTICSEARCH_SEARCH_RETRY_MAX_BACKOFF:1s}
+    cache:
+      enabled: false
+      ttl: 5m
+      key-prefix: "klist:search:tourist-spots:"
     bootstrap:
       mode: ${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}
     reindex:

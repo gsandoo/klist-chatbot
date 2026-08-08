@@ -67,3 +67,7 @@ search:
       mode: ${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}
     reindex:
       page-size: ${TOURIST_SPOT_REINDEX_PAGE_SIZE:500}
+    cache:
+      enabled: ${TOURIST_SPOT_SEARCH_CACHE_ENABLED:true}
+      ttl: ${TOURIST_SPOT_SEARCH_CACHE_TTL:5m}
+      key-prefix: ${TOURIST_SPOT_SEARCH_CACHE_KEY_PREFIX:klist:search:tourist-spots:}
