@@ -44,6 +44,11 @@ class MicrometerChatMetricsRecorderTest {
                 .counter().count()).isEqualTo(120);
         assertThat(registry.get("chatbot.llm.tokens").tag("type", "output")
                 .counter().count()).isEqualTo(30);
+        assertThat(registry.get("chatbot.search.requests").tag("outcome", "results")
+                .counter().count()).isEqualTo(1);
+        assertThat(registry.get("chatbot.llm.requests")
+                .tags("outcome", "success", "reason", "none")
+                .counter().count()).isEqualTo(1);
     }
 
     @Test
@@ -51,11 +56,35 @@ class MicrometerChatMetricsRecorderTest {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
         MicrometerChatMetricsRecorder recorder = new MicrometerChatMetricsRecorder(registry);
 
-        recorder.failed("timeout", Duration.ofMillis(500));
+        recorder.failed("llm", "timeout", Duration.ofMillis(500));
 
         assertThat(registry.get("chatbot.chat.duration").tag("status", "failed")
                 .timer().count()).isEqualTo(1);
-        assertThat(registry.get("chatbot.chat.failures").tag("reason", "timeout")
+        assertThat(registry.get("chatbot.chat.failures")
+                .tags("component", "llm", "reason", "timeout")
                 .counter().count()).isEqualTo(1);
+        assertThat(registry.get("chatbot.llm.requests")
+                .tags("outcome", "error", "reason", "timeout")
+                .counter().count()).isEqualTo(1);
+    }
+
+    @Test
+    void recordsNoResultSearchWithoutCreatingLlmRequestMetric() {
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        MicrometerChatMetricsRecorder recorder = new MicrometerChatMetricsRecorder(registry);
+        ChatCompletionResult completion = mock(ChatCompletionResult.class);
+        ChatSearchResult search = mock(ChatSearchResult.class);
+        TouristSpotSearchResult searchResult = mock(TouristSpotSearchResult.class);
+        when(completion.status()).thenReturn(ChatCompletionStatus.NO_EVIDENCE);
+        when(completion.searchResult()).thenReturn(search);
+        when(search.touristSpotSearchResult()).thenReturn(searchResult);
+        when(searchResult.executionTime()).thenReturn(Duration.ofMillis(10));
+        when(completion.optionalGenerationResult()).thenReturn(Optional.empty());
+
+        recorder.completed(completion, Duration.ofMillis(20));
+
+        assertThat(registry.get("chatbot.search.requests").tag("outcome", "no_result")
+                .counter().count()).isEqualTo(1);
+        assertThat(registry.find("chatbot.llm.requests").counters()).isEmpty();
     }
 }

@@ -10,11 +10,11 @@ public interface ChatMetricsRecorder {
         }
 
         @Override
-        public void failed(String reason, Duration totalTime) {
+        public void failed(String component, String reason, Duration totalTime) {
         }
     };
 
     void completed(ChatCompletionResult result, Duration totalTime);
 
-    void failed(String reason, Duration totalTime);
+    void failed(String component, String reason, Duration totalTime);
 }

@@ -21,13 +21,35 @@ public class MicrometerChatMetricsRecorder implements ChatMetricsRecorder {
         registry.timer("chatbot.chat.duration", "status", status).record(totalTime);
         registry.timer("chatbot.search.duration", "status", status)
                 .record(result.searchResult().touristSpotSearchResult().executionTime());
-        result.optionalGenerationResult().ifPresent(this::recordLlm);
+        String searchOutcome = result.status() == com.klist.chatbot.chat.application.ChatCompletionStatus.NO_EVIDENCE
+                ? "no_result"
+                : "results";
+        registry.counter("chatbot.search.requests", "outcome", searchOutcome).increment();
+        result.optionalGenerationResult().ifPresent(generation -> {
+            registry.counter(
+                    "chatbot.llm.requests",
+                    "outcome", "success",
+                    "reason", "none"
+            ).increment();
+            recordLlm(generation);
+        });
     }
 
     @Override
-    public void failed(String reason, Duration totalTime) {
+    public void failed(String component, String reason, Duration totalTime) {
         registry.timer("chatbot.chat.duration", "status", "failed").record(totalTime);
-        registry.counter("chatbot.chat.failures", "reason", reason).increment();
+        registry.counter(
+                "chatbot.chat.failures",
+                "component", component,
+                "reason", reason
+        ).increment();
+        if ("llm".equals(component)) {
+            registry.counter(
+                    "chatbot.llm.requests",
+                    "outcome", "error",
+                    "reason", reason
+            ).increment();
+        }
     }
 
     private void recordLlm(LlmGenerationResult result) {

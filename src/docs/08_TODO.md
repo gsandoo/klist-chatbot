@@ -88,7 +88,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 
 ### P3. Chat Orchestrator
 
-- [ ] Chat 요청 검증
+- [x] Chat 요청 필수값·길이·timeout 경계 검증
 - [x] 규칙 기반 질문 분석과 Elasticsearch 검색 조건 생성
 - [x] TouristSpot Retriever 연결
 - [x] 검색 근거 정리
@@ -121,7 +121,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] 요청 traceId MDC 로깅
 - [x] API timeout 정책
 - [x] Chatbot 오류를 Backend 오류 계약으로 변환
-- [ ] Backend 연동 통합 테스트
+- [x] 인증 제외 Backend JSON Chat 연동 통합 테스트
 
 ### P6. Redis
 
@@ -159,10 +159,10 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [ ] Ingestion 실행 이력 PostgreSQL 저장
 - [ ] 마지막 성공 수집 시각
 - [ ] Elasticsearch 색인 실행 이력
-- [ ] 검색 응답 시간
-- [ ] LLM 응답 시간
-- [ ] 검색 결과 없음 비율
-- [ ] LLM 오류율
+- [x] 검색 응답 시간
+- [x] LLM 응답 시간
+- [x] 검색 결과 없음 비율
+- [x] LLM 오류율
 - [x] 검색·LLM·전체 처리 시간 및 토큰 사용량 Micrometer 지표
 - [x] Actuator 및 Micrometer 기반 외부 연동 재시도·소진 지표
 - [ ] 구조화 로그와 요청 추적

@@ -77,7 +77,11 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
             metrics.completed(completionResult, processingTime);
             return response;
         } catch (RuntimeException exception) {
-            metrics.failed(failureReason(exception), elapsed(startedAt, nanoTime.getAsLong()));
+            metrics.failed(
+                    failureComponent(exception),
+                    failureReason(exception),
+                    elapsed(startedAt, nanoTime.getAsLong())
+            );
             throw exception;
         }
     }
@@ -175,5 +179,28 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
             return "invalid_response";
         }
         return "unexpected";
+    }
+
+    private static String failureComponent(RuntimeException exception) {
+        if (exception instanceof ChatProcessingUnavailableException
+                || exception instanceof ChatProcessingFailedException) {
+            return "llm";
+        }
+        if (exception instanceof ChatQueryTimeoutException
+                && hasCause(exception, LlmClientException.class)) {
+            return "llm";
+        }
+        return "chat";
+    }
+
+    private static boolean hasCause(Throwable failure, Class<? extends Throwable> type) {
+        Throwable current = failure;
+        while (current != null) {
+            if (type.isInstance(current)) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 }
