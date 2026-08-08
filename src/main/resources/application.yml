@@ -23,6 +23,10 @@ tour-api:
   response-type: json
   connect-timeout: ${TOUR_API_CONNECT_TIMEOUT:3s}
   response-timeout: ${TOUR_API_RESPONSE_TIMEOUT:5s}
+  request-interval: ${TOUR_API_REQUEST_INTERVAL:100ms}
+  retry-max-attempts: ${TOUR_API_RETRY_MAX_ATTEMPTS:3}
+  retry-initial-backoff: ${TOUR_API_RETRY_INITIAL_BACKOFF:200ms}
+  retry-max-backoff: ${TOUR_API_RETRY_MAX_BACKOFF:2s}
 
 search:
   tourist-spots:
