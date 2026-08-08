@@ -64,8 +64,8 @@ public class ChatCompletionOrchestrator {
     ) {
         ChatProcessingDeadline deadline = new ChatProcessingDeadline(timeout, nanoTime);
         ChatSearchResult searchResult = context.isEmpty()
-                ? searchOrchestrator.search(question)
-                : searchOrchestrator.search(question, context);
+                ? searchOrchestrator.search(question, List.of(), timeout)
+                : searchOrchestrator.search(question, context, timeout);
         Duration remainingTimeout = deadline.remaining("search");
         if (searchResult.promptPreparation().optionalPrompt().isEmpty()) {
             return ChatCompletionResult.noEvidence(searchResult);

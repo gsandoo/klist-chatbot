@@ -63,7 +63,7 @@ class ChatCompletionOrchestratorTest {
                 "서울 전망대를 추천합니다.",
                 List.of(new ChatRecommendation(1001L, "야경을 볼 수 있습니다."))
         );
-        when(searchOrchestrator.search(question)).thenReturn(searchResult);
+        when(searchOrchestrator.search(question, List.of(), timeout)).thenReturn(searchResult);
         when(llmClient.generate(org.mockito.ArgumentMatchers.any())).thenReturn(generationResult);
         when(responseParser.parse(generationResult)).thenReturn(parsedAnswer);
         when(answerValidator.validate(parsedAnswer, evidenceContext)).thenReturn(parsedAnswer);
@@ -77,7 +77,7 @@ class ChatCompletionOrchestratorTest {
         ArgumentCaptor<LlmGenerationRequest> requestCaptor =
                 ArgumentCaptor.forClass(LlmGenerationRequest.class);
         InOrder order = inOrder(searchOrchestrator, llmClient, responseParser, answerValidator);
-        order.verify(searchOrchestrator).search(question);
+        order.verify(searchOrchestrator).search(question, List.of(), timeout);
         order.verify(llmClient).generate(requestCaptor.capture());
         order.verify(responseParser).parse(generationResult);
         order.verify(answerValidator).validate(parsedAnswer, evidenceContext);
@@ -91,7 +91,9 @@ class ChatCompletionOrchestratorTest {
                 new ChatEvidenceContext(List.of(), 0, Duration.ZERO),
                 ChatPromptPreparation.noEvidence()
         );
-        when(searchOrchestrator.search("없는 관광지")).thenReturn(searchResult);
+        when(searchOrchestrator.search(
+                "없는 관광지", List.of(), Duration.ofSeconds(5)
+        )).thenReturn(searchResult);
 
         ChatCompletionResult result = orchestrator.complete(
                 "없는 관광지",
@@ -122,7 +124,9 @@ class ChatCompletionOrchestratorTest {
                 List.of(new ChatRecommendation(9001L, "이유"))
         );
         ChatAnswerGroundingException failure = new ChatAnswerGroundingException(Set.of(9001L));
-        when(searchOrchestrator.search("질문")).thenReturn(searchResult);
+        when(searchOrchestrator.search(
+                "질문", List.of(), Duration.ofSeconds(3)
+        )).thenReturn(searchResult);
         when(llmClient.generate(org.mockito.ArgumentMatchers.any())).thenReturn(generationResult);
         when(responseParser.parse(generationResult)).thenReturn(parsed);
         when(answerValidator.validate(parsed, evidenceContext)).thenThrow(failure);
@@ -151,7 +155,9 @@ class ChatCompletionOrchestratorTest {
                 new ChatEvidenceContext(List.of(), 0, Duration.ZERO),
                 ChatPromptPreparation.noEvidence()
         );
-        when(searchOrchestrator.search("question")).thenReturn(searchResult);
+        when(searchOrchestrator.search(
+                "question", List.of(), Duration.ofMillis(5)
+        )).thenReturn(searchResult);
         ChatCompletionOrchestrator timedOrchestrator = orchestratorWithTime(
                 sequentialNanoTime(0L, 5_000_000L)
         );
@@ -177,7 +183,9 @@ class ChatCompletionOrchestratorTest {
                 1
         );
         ChatGeneratedAnswer parsedAnswer = new ChatGeneratedAnswer("answer", List.of());
-        when(searchOrchestrator.search("question")).thenReturn(searchResult);
+        when(searchOrchestrator.search(
+                "question", List.of(), Duration.ofMillis(10)
+        )).thenReturn(searchResult);
         when(llmClient.generate(org.mockito.ArgumentMatchers.any())).thenReturn(generationResult);
         when(responseParser.parse(generationResult)).thenReturn(parsedAnswer);
         when(answerValidator.validate(parsedAnswer, evidenceContext)).thenReturn(parsedAnswer);
@@ -201,7 +209,9 @@ class ChatCompletionOrchestratorTest {
                 ChatPromptPreparation.ready(prompt)
         );
         LlmGenerationResult generationResult = new LlmGenerationResult("{}", "test-model", 1, 1);
-        when(searchOrchestrator.search("question")).thenReturn(searchResult);
+        when(searchOrchestrator.search(
+                "question", List.of(), Duration.ofMillis(5)
+        )).thenReturn(searchResult);
         when(llmClient.generate(org.mockito.ArgumentMatchers.any())).thenReturn(generationResult);
         ChatCompletionOrchestrator timedOrchestrator = orchestratorWithTime(
                 sequentialNanoTime(0L, 1_000_000L, 5_000_000L)

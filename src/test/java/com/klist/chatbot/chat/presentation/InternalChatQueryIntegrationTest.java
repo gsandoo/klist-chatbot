@@ -48,7 +48,8 @@ class InternalChatQueryIntegrationTest {
 
     @Test
     void completesHttpRequestThroughSearchPromptLlmParsingAndGrounding() throws Exception {
-        when(searchGateway.search(any())).thenReturn(searchResult(evidence()));
+        when(searchGateway.search(any(), any(Duration.class)))
+                .thenReturn(searchResult(evidence()));
         when(llmClient.generate(any())).thenReturn(new LlmGenerationResult(
                 """
                 {
@@ -83,7 +84,7 @@ class InternalChatQueryIntegrationTest {
 
     @Test
     void returnsNoResultWithoutCallingLlmWhenSearchHasNoEvidence() throws Exception {
-        when(searchGateway.search(any())).thenReturn(searchResult());
+        when(searchGateway.search(any(), any(Duration.class))).thenReturn(searchResult());
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
@@ -100,7 +101,8 @@ class InternalChatQueryIntegrationTest {
 
     @Test
     void translatesLlmTimeoutToBackendErrorContract() throws Exception {
-        when(searchGateway.search(any())).thenReturn(searchResult(evidence()));
+        when(searchGateway.search(any(), any(Duration.class)))
+                .thenReturn(searchResult(evidence()));
         when(llmClient.generate(any())).thenThrow(new LlmClientException(
                 LlmFailureType.TIMEOUT,
                 "provider timeout",
@@ -123,7 +125,7 @@ class InternalChatQueryIntegrationTest {
 
     @Test
     void returnsSafeBackendErrorWithoutSecretsWhenElasticsearchIsUnavailable() throws Exception {
-        when(searchGateway.search(any())).thenThrow(new TouristSpotSearchException(
+        when(searchGateway.search(any(), any(Duration.class))).thenThrow(new TouristSpotSearchException(
                 "Elasticsearch connection failed: secret-token",
                 new RuntimeException("http://elastic-user:elastic-password@elasticsearch:9200"),
                 true

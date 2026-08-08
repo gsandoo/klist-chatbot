@@ -104,6 +104,31 @@ class ChatSearchOrchestratorTest {
     }
 
     @Test
+    void forwardsRequestTimeoutToTouristSpotRetriever() {
+        String question = "서울 관광지";
+        Duration timeout = Duration.ofSeconds(2);
+        TouristSpotSearchCriteria criteria = criteria();
+        ChatQuestionAnalysis analysis = new ChatQuestionAnalysis(
+                question, question, "서울", null, criteria
+        );
+        TouristSpotSearchResult searchResult = new TouristSpotSearchResult(
+                List.of(), 0, Duration.ZERO
+        );
+        ChatEvidenceContext evidenceContext = new ChatEvidenceContext(
+                List.of(), 0, Duration.ZERO
+        );
+        when(questionAnalyzer.analyze(question)).thenReturn(analysis);
+        when(touristSpotRetriever.retrieve(criteria, timeout)).thenReturn(searchResult);
+        when(evidenceOrganizer.organize(searchResult)).thenReturn(evidenceContext);
+        when(promptFactory.prepare(question, evidenceContext))
+                .thenReturn(ChatPromptPreparation.noEvidence());
+
+        orchestrator.search(question, List.of(), timeout);
+
+        verify(touristSpotRetriever).retrieve(criteria, timeout);
+    }
+
+    @Test
     void propagatesQuestionAnalysisFailureWithoutSearching() {
         IllegalArgumentException failure = new IllegalArgumentException("question must not be blank.");
         when(questionAnalyzer.analyze(" ")).thenThrow(failure);

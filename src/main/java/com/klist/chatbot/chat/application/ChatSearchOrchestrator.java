@@ -9,6 +9,7 @@ import com.klist.chatbot.chat.application.prompt.ChatPromptPreparation;
 import com.klist.chatbot.chat.application.prompt.ChatConversationMessage;
 import com.klist.chatbot.search.application.TouristSpotRetriever;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
+import java.time.Duration;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,8 +46,18 @@ public class ChatSearchOrchestrator {
     }
 
     public ChatSearchResult search(String question, List<ChatConversationMessage> context) {
+        return search(question, context, null);
+    }
+
+    public ChatSearchResult search(
+            String question,
+            List<ChatConversationMessage> context,
+            Duration timeout
+    ) {
         ChatQuestionAnalysis analysis = questionAnalyzer.analyze(question);
-        TouristSpotSearchResult searchResult = touristSpotRetriever.retrieve(analysis.searchCriteria());
+        TouristSpotSearchResult searchResult = timeout == null
+                ? touristSpotRetriever.retrieve(analysis.searchCriteria())
+                : touristSpotRetriever.retrieve(analysis.searchCriteria(), timeout);
         ChatEvidenceContext evidenceContext = evidenceOrganizer.organize(searchResult);
         ChatPromptPreparation promptPreparation = context.isEmpty()
                 ? promptFactory.prepare(analysis.originalQuestion(), evidenceContext)

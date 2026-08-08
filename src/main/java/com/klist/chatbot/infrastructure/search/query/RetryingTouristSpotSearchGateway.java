@@ -6,6 +6,7 @@ import com.klist.chatbot.search.application.TouristSpotSearchResult;
 import com.klist.chatbot.observability.RetryEventListener;
 import java.time.Duration;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 public class RetryingTouristSpotSearchGateway implements TouristSpotSearchGateway {
 
@@ -15,6 +16,7 @@ public class RetryingTouristSpotSearchGateway implements TouristSpotSearchGatewa
     private final Duration maxBackoff;
     private final SearchRetrySleeper sleeper;
     private final RetryEventListener retryEvents;
+    private final LongSupplier nanoTime;
 
     public RetryingTouristSpotSearchGateway(
             TouristSpotSearchGateway delegate,
@@ -24,7 +26,7 @@ public class RetryingTouristSpotSearchGateway implements TouristSpotSearchGatewa
     ) {
         this(delegate, maxAttempts, initialBackoff, maxBackoff,
                 duration -> Thread.sleep(duration.toMillis(), duration.toNanosPart() % 1_000_000),
-                RetryEventListener.NO_OP);
+                RetryEventListener.NO_OP, System::nanoTime);
     }
 
     public RetryingTouristSpotSearchGateway(
@@ -36,7 +38,7 @@ public class RetryingTouristSpotSearchGateway implements TouristSpotSearchGatewa
     ) {
         this(delegate, maxAttempts, initialBackoff, maxBackoff,
                 duration -> Thread.sleep(duration.toMillis(), duration.toNanosPart() % 1_000_000),
-                retryEvents);
+                retryEvents, System::nanoTime);
     }
 
     RetryingTouristSpotSearchGateway(
@@ -46,6 +48,19 @@ public class RetryingTouristSpotSearchGateway implements TouristSpotSearchGatewa
             Duration maxBackoff,
             SearchRetrySleeper sleeper,
             RetryEventListener retryEvents
+    ) {
+        this(delegate, maxAttempts, initialBackoff, maxBackoff, sleeper, retryEvents,
+                System::nanoTime);
+    }
+
+    RetryingTouristSpotSearchGateway(
+            TouristSpotSearchGateway delegate,
+            int maxAttempts,
+            Duration initialBackoff,
+            Duration maxBackoff,
+            SearchRetrySleeper sleeper,
+            RetryEventListener retryEvents,
+            LongSupplier nanoTime
     ) {
         this.delegate = Objects.requireNonNull(delegate, "delegate must not be null");
         if (maxAttempts < 1) {
@@ -59,11 +74,24 @@ public class RetryingTouristSpotSearchGateway implements TouristSpotSearchGatewa
         }
         this.sleeper = Objects.requireNonNull(sleeper, "sleeper must not be null");
         this.retryEvents = Objects.requireNonNull(retryEvents, "retryEvents must not be null");
+        this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime must not be null");
     }
 
     @Override
     public TouristSpotSearchResult search(TouristSpotSearchCriteria criteria) {
+        return search(criteria, null);
+    }
+
+    @Override
+    public TouristSpotSearchResult search(
+            TouristSpotSearchCriteria criteria,
+            Duration timeout
+    ) {
         Objects.requireNonNull(criteria, "criteria must not be null");
+        if (timeout != null && (timeout.isZero() || timeout.isNegative())) {
+            throw new IllegalArgumentException("timeout must be positive");
+        }
+        long startedAt = nanoTime.getAsLong();
         for (int attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 return delegate.search(criteria);
@@ -75,11 +103,24 @@ public class RetryingTouristSpotSearchGateway implements TouristSpotSearchGatewa
                     throw exception;
                 }
                 Duration backoff = backoff(attempt);
+                if (!fits(timeout, startedAt, backoff)) {
+                    retryEvents.exhausted("elasticsearch", "timeout_budget", attempt);
+                    throw exception;
+                }
                 retryEvents.retrying("elasticsearch", "transient", attempt + 1, backoff);
                 sleep(backoff, exception);
             }
         }
         throw new IllegalStateException("Search retry loop completed unexpectedly");
+    }
+
+    private boolean fits(Duration timeout, long startedAt, Duration backoff) {
+        if (timeout == null) {
+            return true;
+        }
+        long elapsed = Math.max(0L, nanoTime.getAsLong() - startedAt);
+        long remaining = timeout.toNanos() - elapsed;
+        return remaining > backoff.toNanos();
     }
 
     private Duration backoff(int completedAttempts) {

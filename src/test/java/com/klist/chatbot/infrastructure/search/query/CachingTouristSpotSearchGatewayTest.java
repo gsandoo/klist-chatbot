@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -100,6 +101,37 @@ class CachingTouristSpotSearchGatewayTest {
                 .set(anyString(), anyString(), eq(Duration.ofMinutes(5)));
 
         assertThat(gateway().search(criteria)).isSameAs(expected);
+    }
+
+    @Test
+    void usesRedisAgainAfterTransientReadFailureRecovers() throws Exception {
+        TouristSpotSearchCriteria criteria = criteria("경복궁");
+        TouristSpotSearchResult expected = result();
+        String cached = objectMapper.writeValueAsString(new CachedFixture(List.of(evidence()), 1));
+        when(valueOperations.get(anyString()))
+                .thenThrow(new DataAccessResourceFailureException("unavailable"))
+                .thenReturn(cached);
+        when(delegate.search(criteria)).thenReturn(expected);
+        CachingTouristSpotSearchGateway gateway = gateway();
+
+        assertThat(gateway.search(criteria)).isSameAs(expected);
+        assertThat(gateway.search(criteria).evidence()).containsExactly(evidence());
+
+        verify(delegate).search(criteria);
+        verify(valueOperations, times(2)).get(anyString());
+    }
+
+    @Test
+    void forwardsRequestTimeoutBudgetOnCacheMiss() {
+        TouristSpotSearchCriteria criteria = criteria("경복궁");
+        Duration timeout = Duration.ofSeconds(2);
+        TouristSpotSearchResult expected = result();
+        when(valueOperations.get(anyString())).thenReturn(null);
+        when(delegate.search(criteria, timeout)).thenReturn(expected);
+
+        assertThat(gateway().search(criteria, timeout)).isSameAs(expected);
+
+        verify(delegate).search(criteria, timeout);
     }
 
     @Test

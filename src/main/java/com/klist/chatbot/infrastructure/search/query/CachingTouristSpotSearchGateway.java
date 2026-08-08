@@ -13,6 +13,7 @@ import java.time.Duration;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
@@ -53,9 +54,25 @@ public class CachingTouristSpotSearchGateway implements TouristSpotSearchGateway
 
     @Override
     public TouristSpotSearchResult search(TouristSpotSearchCriteria criteria) {
+        return searchCached(criteria, () -> delegate.search(criteria));
+    }
+
+    @Override
+    public TouristSpotSearchResult search(
+            TouristSpotSearchCriteria criteria,
+            Duration timeout
+    ) {
+        Objects.requireNonNull(timeout, "timeout must not be null");
+        return searchCached(criteria, () -> delegate.search(criteria, timeout));
+    }
+
+    private TouristSpotSearchResult searchCached(
+            TouristSpotSearchCriteria criteria,
+            Supplier<TouristSpotSearchResult> search
+    ) {
         Objects.requireNonNull(criteria, "criteria must not be null");
         if (!enabled) {
-            return delegate.search(criteria);
+            return search.get();
         }
 
         String key;
@@ -63,7 +80,7 @@ public class CachingTouristSpotSearchGateway implements TouristSpotSearchGateway
             key = cacheKey(criteria);
         } catch (JsonProcessingException exception) {
             log.warn("Tourist spot search cache key serialization failed.");
-            return delegate.search(criteria);
+            return search.get();
         }
 
         TouristSpotSearchResult cached = read(key);
@@ -71,7 +88,7 @@ public class CachingTouristSpotSearchGateway implements TouristSpotSearchGateway
             return cached;
         }
 
-        TouristSpotSearchResult result = delegate.search(criteria);
+        TouristSpotSearchResult result = search.get();
         write(key, result);
         return result;
     }
