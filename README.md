@@ -27,6 +27,10 @@ INTERNAL_API_KEY=<256-bit-random-secret>
 Backend는 모든 `/internal/**` 요청에 `X-Internal-Api-Key` 헤더로 같은 값을 전달해야 한다.
 키는 소스나 이미지에 포함하지 않고 배포 환경의 Secret Manager에서 환경변수로 주입한다.
 
+내부 Chat 요청은 UUID `requestId`를 필수로 사용한다. 완료 응답과 처리 잠금은 Redis에 5분간
+보관하며 Redis 장애 시 중복 LLM 호출을 막기 위해 `503`으로 fail-closed 처리한다. Backend는 최대
+10개의 임시 대화 문맥을 전달하고, 답변 완료 후 자체 Redis 세션 TTL을 3분으로 갱신한다.
+
 TourAPI 수집 또는 Scheduler를 사용할 때 추가하는 환경변수:
 
 ```text

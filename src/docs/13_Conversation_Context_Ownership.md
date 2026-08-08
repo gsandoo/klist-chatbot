@@ -2,32 +2,31 @@
 
 ## 결정
 
-Backend가 대화 세션과 메시지의 원본 저장 및 최근 문맥 조립을 전담한다.
+Backend가 3분 TTL의 임시 대화 세션과 최근 문맥 조립을 전담한다.
 Chatbot은 대화를 영속화하거나 세션별 최근 문맥을 자체 캐시하지 않는 무상태 처리자로 운영한다.
 
-현재 `POST /internal/chat/query` 계약은 `sessionId`, `userId`, 현재 `message`, `timeoutMs`만
-전달하므로 단일 턴 질의로 처리한다. 최근 대화 또는 요약을 전달하려면 Backend와 Chatbot API 계약을
-별도로 변경한 후 구현한다.
+현재 `POST /internal/chat/query` 계약은 필수 UUID `requestId`, `sessionId`, `userId`, 현재
+`message`, 최대 10개의 `context`, `timeoutMs`를 전달한다. `messageId`와 영구 채팅 내역은 사용하지
+않는다.
 
 ## Backend 책임
 
 - 사용자 인증 및 대화 세션 소유권 검증
-- 사용자 메시지와 Chatbot 응답의 원본 저장
-- 메시지 순서, 중복 요청 및 멱등성 관리
-- 최근 대화 선택, 토큰 제한 적용 및 요약 생성
-- Chatbot 호출 전에 사용자 메시지 저장 상태 확정
-- Chatbot 성공 응답과 안전한 오류 상태 저장
-- 개인정보 보존 기간과 삭제 정책 적용
+- Redis 기반 임시 세션과 최근 문맥 관리
+- Chatbot 답변 완료 후 세션 TTL 3분 설정
+- 사용자 종료, 화면 이탈 또는 TTL 만료 시 세션과 문맥 삭제
+- 최근 대화 최대 10개 선택 및 순서 유지
+- HTTP 재시도에서 동일한 `requestId` 유지
 
-Backend가 대화 원본의 단일 진실 공급원이다. Frontend와 Gateway는 Chatbot에 직접 접근하지 않고
-Backend를 통해 대화 상태를 조회한다.
+Frontend와 Gateway는 Chatbot에 직접 접근하지 않고 Backend를 통해 임시 대화 상태를 조회한다.
 
 ## Chatbot 책임
 
-- 전달받은 현재 질문과 향후 계약에 포함될 문맥의 유효성 검증
+- 전달받은 현재 질문과 최대 10개 임시 문맥의 유효성 검증
 - 관광지 검색, 근거 구성, Prompt 생성 및 LLM 호출
 - 검색 근거에 한정된 답변과 추천 관광지 반환
 - 요청 처리 중 필요한 데이터만 메모리에 유지
+- Redis 기반 `requestId` 중복 실행 차단과 완료 응답 5분 캐시
 - traceId, 처리시간, 오류 유형과 운영 지표 기록
 
 Chatbot은 `sessionId`와 `userId`를 대화 조회 키로 사용하지 않는다. 이 값은 내부 요청의 식별과
@@ -36,13 +35,11 @@ Chatbot은 `sessionId`와 `userId`를 대화 조회 키로 사용하지 않는�
 ## 저장 순서
 
 1. Backend가 인증과 세션 소유권을 검증한다.
-2. Backend가 사용자 메시지를 저장하고 요청 식별자를 확정한다.
-3. Backend가 현재 질문과 필요한 최근 문맥 또는 요약을 Chatbot에 전달한다.
+2. Backend가 UUID `requestId`를 생성하고 임시 문맥을 조립한다.
+3. Backend가 현재 질문과 최대 10개의 최근 문맥을 Chatbot에 전달한다.
 4. Chatbot이 검색과 LLM 처리를 수행하고 근거 포함 응답을 반환한다.
-5. Backend가 Chatbot 응답 또는 오류 상태를 저장한다.
+5. Backend가 응답을 임시 문맥에 추가하고 세션 TTL을 3분으로 갱신한다.
 6. Backend가 Client에 최종 응답을 전달한다.
-
-현재 계약에는 최근 문맥과 요청 식별자가 없으므로 3단계에서는 현재 질문만 전달한다.
 
 ## 최근 문맥 Redis 캐시 결정
 
@@ -56,19 +53,11 @@ Chatbot에는 최근 대화 문맥 캐시를 두지 않는다.
 - Chatbot 재시작이나 Redis 장애에 따라 답변 문맥이 달라질 수 있다.
 - 현재 API는 최근 문맥을 전달하지 않아 캐시를 안전하게 채울 기준이 없다.
 
-성능 문제가 확인되면 Backend가 원본 저장소 앞에 문맥 조회 캐시를 둘 수 있다. 이 경우에도
-Backend가 캐시 무효화와 TTL을 책임지고 Chatbot은 매 요청에 전달된 문맥만 사용한다.
+Backend는 임시 문맥을 Redis에 3분 동안 보관한다. Chatbot은 매 요청에 전달된 문맥만 사용한다.
 
-## 향후 API 계약 변경 시 요구사항
+## 멱등성 정책
 
-최근 문맥 또는 요약 필드를 추가할 때는 다음을 함께 확정한다.
-
-- 메시지 ID, 역할, 내용, 생성 순서의 필수 여부
-- 원문 배열과 요약 중 사용할 표현
-- 최대 메시지 수와 최대 문자 또는 토큰 수
-- 오래된 문맥 절단 및 요약 갱신 규칙
-- 민감정보 제거와 로그 기록 금지 범위
-- `requestId` 기반 멱등성과 완료 응답 재사용 정책
-- Backend 저장 성공과 Chatbot 호출 실패 사이의 복구 방식
-
-이 변경은 API 계약 변경이므로 `99_Autonomous_Development_Policy.md`에 따라 사용자 확인 후 진행한다.
+- 완료 응답과 처리 잠금의 TTL은 5분이다.
+- 동일 요청 처리 중 재호출은 `409 REQUEST_IN_PROGRESS`와 `Retry-After: 1`을 반환한다.
+- 같은 `requestId`를 다른 요청 내용에 사용하면 `409 REQUEST_ID_CONFLICT`를 반환한다.
+- Redis 장애 시 `503 CHAT_PROCESSING_UNAVAILABLE`로 fail-closed 처리한다.

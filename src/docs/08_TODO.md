@@ -33,13 +33,12 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 ### P0. Backend ↔ Chatbot 내부 API 계약
 
 - [x] 요청 DTO 정의
-  - `requestId`
-  - `messageId`
+  - 필수 UUID `requestId`
   - `sessionId`
   - 사용자 식별자
   - 현재 질문
-  - 최근 대화 문맥 또는 요약
-  - 위치, 언어, 스트리밍 여부
+  - 최대 10개의 임시 대화 문맥
+  - 처리 timeout
 - [x] 응답 DTO 정의
   - 자연어 답변
   - 추천 관광지 ID와 추천 이유
@@ -121,13 +120,13 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] 요청 traceId MDC 로깅
 - [x] API timeout 정책
 - [x] Chatbot 오류를 Backend 오류 계약으로 변환
-- [x] 인증 제외 Backend JSON Chat 연동 통합 테스트
+- [x] 인증 포함 Backend JSON Chat 연동 통합 테스트
 
 ### P6. Redis
 
-- [ ] `requestId` 기반 중복 요청 방지
-- [ ] 처리 중 요청 상태
-- [ ] 완료 응답 단기 캐시
+- [x] `requestId` 기반 중복 요청 방지
+- [x] 처리 중 요청 상태
+- [x] 완료 응답 5분 캐시
 - [x] 최근 대화 문맥은 Backend 관리, Chatbot Redis 캐시 미도입 결정
 - [x] 정규화된 관광지 검색 결과 Redis 캐시
 - [x] 검색 결과 캐시 TTL 정책
@@ -199,11 +198,13 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 
 ### 2. `requestId` 기반 멱등성과 완료 응답 캐시
 
-- Chat 요청에 `requestId`를 포함하고 필수값·길이 규칙을 확정한다.
-- Redis `SET NX + TTL`로 처리 중 요청의 중복 실행을 차단한다.
-- 완료 응답을 짧은 TTL로 캐시해 동일 요청에 재사용한다.
-- 처리 중·완료·실패 상태 전이와 동시 요청을 테스트한다.
-- Redis 장애 시 중복 LLM 호출 위험과 fail-open 또는 fail-closed 정책을 명시한다.
+- [x] Chat 요청에 필수 UUID `requestId`를 포함한다.
+- [x] Redis `SET NX + TTL`로 처리 중 요청의 중복 실행을 차단한다.
+- [x] 완료 응답을 5분 TTL로 캐시해 동일 요청에 재사용한다.
+- [x] 처리 중 동일 요청은 `409 REQUEST_IN_PROGRESS`로 반환한다.
+- [x] 같은 `requestId`에 다른 내용을 사용하면 `409 REQUEST_ID_CONFLICT`로 반환한다.
+- [x] Redis 장애 시 `503` fail-closed로 중복 LLM 호출을 방지한다.
+- [x] 최대 10개의 임시 문맥을 검증하고 Prompt에 데이터로 전달한다.
 
 이 단계는 API 계약 변경이므로 구현 전에 사용자 확인을 받는다. Backend 저장 메시지 ID와
 `requestId`의 관계도 함께 확정한다.
