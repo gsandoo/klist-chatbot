@@ -45,6 +45,13 @@ search:
       enabled: false
       ttl: 5m
       key-prefix: "klist:search:tourist-spots:"
+    failure-retry:
+      enabled: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_ENABLED:false}
+      interval: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_INTERVAL:30s}
+      batch-size: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_BATCH_SIZE:20}
+      max-attempts: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_MAX_ATTEMPTS:5}
+      initial-backoff: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_INITIAL_BACKOFF:30s}
+      max-backoff: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_MAX_BACKOFF:30m}
     bootstrap:
       mode: ${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}
     reindex:
