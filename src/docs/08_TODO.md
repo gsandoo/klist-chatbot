@@ -150,7 +150,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] LLM timeout, connection, 일부 5xx Retry
 - [x] Retry 비대상 오류 구분
 - [x] LLM 지수 Backoff와 요청 timeout 예산 제한
-- [ ] Circuit Breaker 필요성 검토
+- [x] Circuit Breaker 필요성 검토 및 운영 지표 확보 전 도입 보류 결정
 - [ ] TourAPI 호출 간격 및 Retry 정책
 - [ ] 다중 인스턴스 Scheduler 분산 잠금
 
