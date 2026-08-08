@@ -70,7 +70,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] Testcontainers PostgreSQL·Elasticsearch 실제 통합 테스트
 - [x] Cloud 배포용 인덱스 초기화 및 전체 재색인 실행 모드
 - [ ] 색인 실패 기록 및 재처리
-- [ ] PostgreSQL 원본 수정 시각과 색인 버전 비교
+- [x] PostgreSQL 원본 수정 시각과 색인 버전 비교
 
 ### P2. Elasticsearch 관광지 검색
 
