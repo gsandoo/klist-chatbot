@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.klist.chatbot.chat.application.prompt.ChatPrompt;
+import com.klist.chatbot.observability.RetryEventListener;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,10 +34,12 @@ class RetryingLlmClientTest {
                 .thenThrow(failure)
                 .thenReturn(success);
         List<Duration> sleeps = new ArrayList<>();
+        RetryEventListener retryEvents = mock(RetryEventListener.class);
         RetryingLlmClient client = client(
                 sequentialNanos(0L, 0L, 100_000_000L, 100_000_000L,
                         300_000_000L, 300_000_000L),
-                sleeps::add
+                sleeps::add,
+                retryEvents
         );
 
         LlmGenerationResult result = client.generate(request);
@@ -57,6 +60,8 @@ class RetryingLlmClientTest {
                         Duration.ofMillis(1900),
                         Duration.ofMillis(1700)
                 );
+        verify(retryEvents).retrying("openai", "connection", 2, Duration.ofMillis(100));
+        verify(retryEvents).retrying("openai", "connection", 3, Duration.ofMillis(200));
     }
 
     @Test
@@ -73,10 +78,12 @@ class RetryingLlmClientTest {
     void stopsAfterMaximumAttempts() {
         LlmClientException failure = failure(true);
         when(delegate.generate(org.mockito.ArgumentMatchers.any())).thenThrow(failure);
-        RetryingLlmClient client = client(() -> 0L, duration -> { });
+        RetryEventListener retryEvents = mock(RetryEventListener.class);
+        RetryingLlmClient client = client(() -> 0L, duration -> { }, retryEvents);
 
         assertThatThrownBy(() -> client.generate(request)).isSameAs(failure);
         verify(delegate, times(3)).generate(org.mockito.ArgumentMatchers.any());
+        verify(retryEvents).exhausted("openai", "connection", 3);
     }
 
     @Test
@@ -98,6 +105,14 @@ class RetryingLlmClientTest {
     }
 
     private RetryingLlmClient client(LongSupplier nanoTime, LlmRetrySleeper sleeper) {
+        return client(nanoTime, sleeper, RetryEventListener.NO_OP);
+    }
+
+    private RetryingLlmClient client(
+            LongSupplier nanoTime,
+            LlmRetrySleeper sleeper,
+            RetryEventListener retryEvents
+    ) {
         return new RetryingLlmClient(
                 delegate,
                 3,
@@ -105,7 +120,7 @@ class RetryingLlmClientTest {
                 Duration.ofMillis(500),
                 nanoTime,
                 sleeper,
-                com.klist.chatbot.observability.RetryEventListener.NO_OP
+                retryEvents
         );
     }
 

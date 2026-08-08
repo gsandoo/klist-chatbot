@@ -63,4 +63,14 @@ class RedisTourApiIngestionLockTest {
 
         assertThat(lock.tryAcquire()).isEmpty();
     }
+
+    @Test
+    void acquiresNormallyAfterRedisRecovers() {
+        when(valueOperations.setIfAbsent(anyString(), anyString(), any(Duration.class)))
+                .thenThrow(new DataAccessResourceFailureException("unavailable"))
+                .thenReturn(true);
+
+        assertThat(lock.tryAcquire()).isEmpty();
+        assertThat(lock.tryAcquire()).isPresent();
+    }
 }

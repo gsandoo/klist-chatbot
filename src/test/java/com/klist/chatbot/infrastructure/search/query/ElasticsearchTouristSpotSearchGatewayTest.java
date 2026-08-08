@@ -13,6 +13,8 @@ import com.klist.chatbot.infrastructure.search.document.TouristSpotSearchRegion;
 import com.klist.chatbot.infrastructure.search.index.TouristSpotIndexProperties;
 import com.klist.chatbot.search.application.TouristSpotSearchCriteria;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -115,6 +117,40 @@ class ElasticsearchTouristSpotSearchGatewayTest {
     @Test
     void marksTransientElasticsearchFailureAsRetryable() {
         RuntimeException cause = new TransientDataAccessResourceException("unavailable");
+        when(operations.search(
+                org.mockito.ArgumentMatchers.any(NativeQuery.class),
+                eq(TouristSpotSearchDocument.class),
+                eq(IndexCoordinates.of("tourist-spots"))
+        )).thenThrow(cause);
+
+        assertThatThrownBy(() -> gateway.search(criteria()))
+                .isInstanceOfSatisfying(TouristSpotSearchException.class, exception ->
+                        assertThat(exception.retryable()).isTrue());
+    }
+
+    @Test
+    void marksNestedConnectionFailureAsRetryable() {
+        RuntimeException cause = new RuntimeException(
+                "wrapped connection failure",
+                new ConnectException("connection refused")
+        );
+        when(operations.search(
+                org.mockito.ArgumentMatchers.any(NativeQuery.class),
+                eq(TouristSpotSearchDocument.class),
+                eq(IndexCoordinates.of("tourist-spots"))
+        )).thenThrow(cause);
+
+        assertThatThrownBy(() -> gateway.search(criteria()))
+                .isInstanceOfSatisfying(TouristSpotSearchException.class, exception ->
+                        assertThat(exception.retryable()).isTrue());
+    }
+
+    @Test
+    void marksNestedTimeoutFailureAsRetryable() {
+        RuntimeException cause = new RuntimeException(
+                "wrapped timeout failure",
+                new SocketTimeoutException("read timed out")
+        );
         when(operations.search(
                 org.mockito.ArgumentMatchers.any(NativeQuery.class),
                 eq(TouristSpotSearchDocument.class),
