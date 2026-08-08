@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 
 import com.klist.chatbot.chat.application.llm.LlmClient;
 import com.klist.chatbot.chat.application.llm.LlmClientException;
@@ -15,6 +16,7 @@ import com.klist.chatbot.chat.application.llm.LlmGenerationResult;
 import com.klist.chatbot.search.application.TouristSpotSearchEvidence;
 import com.klist.chatbot.search.application.TouristSpotSearchGateway;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
+import com.klist.chatbot.infrastructure.search.query.TouristSpotSearchException;
 import java.time.Duration;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -117,6 +119,37 @@ class InternalChatQueryIntegrationTest {
                 .andExpect(header().string("X-Trace-Id", TRACE_ID))
                 .andExpect(jsonPath("$.code").value("CHAT_QUERY_TIMEOUT"))
                 .andExpect(jsonPath("$.traceId").value(TRACE_ID));
+    }
+
+    @Test
+    void returnsSafeBackendErrorWithoutSecretsWhenElasticsearchIsUnavailable() throws Exception {
+        when(searchGateway.search(any())).thenThrow(new TouristSpotSearchException(
+                "Elasticsearch connection failed: secret-token",
+                new RuntimeException("http://elastic-user:elastic-password@elasticsearch:9200"),
+                true
+        ));
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest("서울 야경 명소를 추천해줘")))
+                .andExpect(status().isInternalServerError())
+                .andExpect(header().string("X-Trace-Id", TRACE_ID))
+                .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+                .andExpect(jsonPath("$.message").value(
+                        "The chatbot request could not be processed."
+                ))
+                .andExpect(jsonPath("$.traceId").value(TRACE_ID))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString(INTERNAL_API_KEY)
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("secret-token")
+                )))
+                .andExpect(content().string(org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("elastic-password")
+                )));
     }
 
     private static TouristSpotSearchResult searchResult(TouristSpotSearchEvidence... evidence) {
