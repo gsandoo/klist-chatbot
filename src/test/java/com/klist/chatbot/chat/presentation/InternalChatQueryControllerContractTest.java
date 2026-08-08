@@ -28,6 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class InternalChatQueryControllerContractTest {
 
     private static final String TRACE_ID = "trace-backend-001";
+    private static final String INTERNAL_API_KEY = "test-internal-api-key";
 
     @Autowired
     private MockMvc mockMvc;
@@ -53,6 +54,7 @@ class InternalChatQueryControllerContractTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -76,6 +78,7 @@ class InternalChatQueryControllerContractTest {
     void returnsValidationErrorWithTraceId() throws Exception {
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -100,6 +103,7 @@ class InternalChatQueryControllerContractTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -126,6 +130,7 @@ class InternalChatQueryControllerContractTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest()))
                 .andExpect(status().isInternalServerError())
@@ -148,6 +153,7 @@ class InternalChatQueryControllerContractTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest()))
                 .andExpect(status().isServiceUnavailable())
@@ -169,6 +175,7 @@ class InternalChatQueryControllerContractTest {
         });
 
         mockMvc.perform(post("/internal/chat/query")
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {

@@ -19,6 +19,7 @@ paths:
         Backend HTTP Client timeout은 네트워크 여유를 포함해 이 값보다 길게 설정한다.
       parameters:
         - $ref: '#/components/parameters/TraceId'
+        - $ref: '#/components/parameters/InternalApiKey'
       requestBody:
         required: true
         content:
@@ -49,6 +50,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 내부 API 키가 누락되었거나 올바르지 않음
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '504':
           description: 검색 또는 LLM 처리가 제한 시간을 초과함
           headers:
@@ -59,7 +69,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '503':
-          description: 검색 및 LLM 처리 구현이 준비되지 않았거나 일시적으로 사용 불가함
+          description: 내부 인증 설정, 검색 또는 LLM 처리가 일시적으로 사용 불가함
           headers:
             X-Trace-Id:
               $ref: '#/components/headers/TraceId'
@@ -78,6 +88,13 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
+    InternalApiKey:
+      name: X-Internal-Api-Key
+      in: header
+      required: true
+      description: Backend와 Chatbot이 공유하는 내부 API 인증 키
+      schema:
+        type: string
     TraceId:
       name: X-Trace-Id
       in: header
@@ -183,6 +200,8 @@ components:
         code:
           type: string
           enum:
+            - UNAUTHORIZED
+            - INTERNAL_AUTH_NOT_CONFIGURED
             - INVALID_REQUEST
             - CHAT_QUERY_TIMEOUT
             - CHAT_PROCESSING_UNAVAILABLE

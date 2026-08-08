@@ -33,6 +33,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class InternalChatQueryIntegrationTest {
 
     private static final String TRACE_ID = "integration-trace-001";
+    private static final String INTERNAL_API_KEY = "test-internal-api-key";
 
     @Autowired
     private MockMvc mockMvc;
@@ -63,6 +64,7 @@ class InternalChatQueryIntegrationTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest("서울 야경 명소를 추천해줘")))
                 .andExpect(status().isOk())
@@ -83,6 +85,7 @@ class InternalChatQueryIntegrationTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest("없는 관광지를 찾아줘")))
                 .andExpect(status().isOk())
@@ -107,6 +110,7 @@ class InternalChatQueryIntegrationTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(validRequest("서울 야경 명소를 추천해줘")))
                 .andExpect(status().isGatewayTimeout())
