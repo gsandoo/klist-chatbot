@@ -233,11 +233,12 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 
 ### 5. 실제 Backend ↔ Chatbot 운영 환경 연결 검증
 
-- 배포 환경의 Backend가 Chatbot 내부 DNS와 포트로 호출 가능한지 확인한다.
-- 인증, traceId, timeout과 공통 오류 변환이 전 구간에서 유지되는지 검증한다.
-- 정상 응답, 검색 결과 없음, LLM timeout과 Elasticsearch 장애 시나리오를 확인한다.
-- Backend 대화 저장 순서와 Chatbot 응답 근거 저장 결과를 점검한다.
-- 운영 환경의 비밀값이 로그와 오류 응답에 노출되지 않는지 확인한다.
+- [ ] 배포 환경의 Backend가 Chatbot 내부 DNS와 포트로 호출 가능한지 확인한다. (외부 환경 대기)
+- [x] 인증, traceId, timeout과 공통 오류 변환의 Chatbot 로컬 계약을 검증한다.
+- [x] 정상 응답, 검색 결과 없음, LLM timeout과 Elasticsearch 장애의 Chatbot 로컬 시나리오를 확인한다.
+- [ ] Backend 대화 저장 순서와 Chatbot 응답 근거 저장 결과를 점검한다. (Backend 연결 대기)
+- [x] 오류 응답에 내부 API 키와 외부 연동 비밀값이 노출되지 않는지 검증한다.
+- [ ] 배포 로그에 운영 비밀값이 노출되지 않는지 확인한다. (외부 환경 대기)
 
 외부 Backend 또는 배포 환경 접근 권한이 없으면 로컬 계약 테스트 결과와 필요한 실행 절차를
 문서화하고 실제 연결 검증을 대기 상태로 남긴다.
