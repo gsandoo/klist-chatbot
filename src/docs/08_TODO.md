@@ -152,7 +152,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] LLM 지수 Backoff와 요청 timeout 예산 제한
 - [x] Circuit Breaker 필요성 검토 및 운영 지표 확보 전 도입 보류 결정
 - [x] TourAPI 호출 간격 및 Retry 정책
-- [ ] 다중 인스턴스 Scheduler 분산 잠금
+- [x] Redis 기반 다중 인스턴스 Scheduler 분산 잠금
 
 ### P9. 실행 이력과 모니터링
 
