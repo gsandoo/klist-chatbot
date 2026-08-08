@@ -245,12 +245,12 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 
 ### 6. Redis·Elasticsearch·LLM 장애 안전성 검증
 
-- Redis 장애 시 검색 캐시 fallback과 Scheduler 분산 잠금 fail-closed를 검증한다.
-- Elasticsearch timeout·connection·재시도 소진 시 안전한 Backend 오류를 검증한다.
-- LLM timeout·connection·429·5xx·유효하지 않은 응답을 구분해 검증한다.
-- 장애 중 Retry와 Backoff가 요청 timeout 예산을 초과하지 않는지 확인한다.
-- 복구 후 정상 요청이 추가 조치 없이 처리되는지 확인한다.
-- 구조화 로그와 Micrometer 오류·재시도·소진 지표가 함께 기록되는지 확인한다.
+- [x] Redis 장애 시 검색 캐시 fallback과 Scheduler 분산 잠금 fail-closed를 검증한다.
+- [x] Elasticsearch timeout·connection·재시도 소진 시 안전한 Backend 오류를 검증한다.
+- [x] LLM timeout·connection·429·5xx·유효하지 않은 응답을 구분해 검증한다.
+- [x] 장애 중 Retry와 Backoff가 요청 timeout 예산을 초과하지 않는지 확인한다.
+- [x] 복구 후 정상 요청이 추가 조치 없이 처리되는지 확인한다.
+- [x] 구조화 로그와 Micrometer 오류·재시도·소진 지표가 함께 기록되는지 확인한다.
 
 ## MVP 완료 기준
 
