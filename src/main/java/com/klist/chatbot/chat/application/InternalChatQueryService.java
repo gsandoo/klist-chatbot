@@ -22,9 +22,6 @@ import java.util.stream.Collectors;
 
 public class InternalChatQueryService implements InternalChatQueryUseCase {
 
-    private static final String NO_RESULT_ANSWER =
-            "조건에 맞는 관광지를 찾지 못했습니다. 다른 지역이나 관광 유형으로 질문해 주세요.";
-
     private final ChatCompletionOrchestrator completionOrchestrator;
     private final LongSupplier nanoTime;
     private final ChatMetricsRecorder metrics;
@@ -94,7 +91,13 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
     ) {
         if (completionResult.status() == ChatCompletionStatus.NO_EVIDENCE) {
             return new InternalChatQueryResponse(
-                    NO_RESULT_ANSWER, List.of(), traceId, ChatQueryStatus.NO_RESULT, processingTimeMs
+                    ChatNoResultGuidance.message(
+                            completionResult.searchResult().questionAnalysis()
+                    ),
+                    List.of(),
+                    traceId,
+                    ChatQueryStatus.NO_RESULT,
+                    processingTimeMs
             );
         }
         ChatGeneratedAnswer generatedAnswer = completionResult.generatedAnswer();
