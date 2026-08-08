@@ -54,6 +54,24 @@ class ChatPromptFactoryTest {
     }
 
     @Test
+    void includesTemporaryConversationContextAsUntrustedJsonData() {
+        ChatPrompt prompt = factory.prepare(
+                "그중 아이와 갈 곳을 알려줘",
+                List.of(
+                        new ChatConversationMessage("USER", "서울 실내 관광지를 추천해줘"),
+                        new ChatConversationMessage("ASSISTANT", "서울 박물관을 추천합니다")
+                ),
+                context(evidence())
+        ).prompt();
+
+        assertThat(prompt.userMessage())
+                .contains("<conversation_context_json>")
+                .contains("\"role\":\"USER\"")
+                .contains("서울 실내 관광지를 추천해줘")
+                .contains("\"role\":\"ASSISTANT\"");
+    }
+
+    @Test
     void skipsPromptWhenSearchEvidenceIsEmpty() {
         ChatPromptPreparation preparation = factory.prepare(
                 "없는 관광지",

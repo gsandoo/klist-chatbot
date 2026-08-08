@@ -150,6 +150,7 @@ class InternalChatQueryIntegrationTest {
     private static String validRequest(String message) {
         return """
                 {
+                  "requestId": "a22c717d-5a3e-46b5-92fc-f41624b85887",
                   "sessionId": "session-001",
                   "userId": "user-001",
                   "message": "%s",

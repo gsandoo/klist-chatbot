@@ -51,6 +51,10 @@ search:
       page-size: ${TOURIST_SPOT_REINDEX_PAGE_SIZE:500}
 
 chat:
+  idempotency:
+    enabled: ${CHAT_IDEMPOTENCY_ENABLED:true}
+    ttl: ${CHAT_IDEMPOTENCY_TTL:5m}
+    key-prefix: ${CHAT_IDEMPOTENCY_KEY_PREFIX:klist:chat:request:}
   question-analysis:
     result-size: ${CHAT_SEARCH_RESULT_SIZE:5}
     minimum-score: ${CHAT_SEARCH_MINIMUM_SCORE:0.1}

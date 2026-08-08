@@ -7,7 +7,9 @@ import com.klist.chatbot.chat.application.llm.LlmClient;
 import com.klist.chatbot.chat.application.llm.LlmGenerationRequest;
 import com.klist.chatbot.chat.application.llm.LlmGenerationResult;
 import com.klist.chatbot.chat.application.prompt.ChatPrompt;
+import com.klist.chatbot.chat.application.prompt.ChatConversationMessage;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.LongSupplier;
 
@@ -52,8 +54,18 @@ public class ChatCompletionOrchestrator {
     }
 
     public ChatCompletionResult complete(String question, Duration timeout) {
+        return complete(question, List.of(), timeout);
+    }
+
+    public ChatCompletionResult complete(
+            String question,
+            List<ChatConversationMessage> context,
+            Duration timeout
+    ) {
         ChatProcessingDeadline deadline = new ChatProcessingDeadline(timeout, nanoTime);
-        ChatSearchResult searchResult = searchOrchestrator.search(question);
+        ChatSearchResult searchResult = context.isEmpty()
+                ? searchOrchestrator.search(question)
+                : searchOrchestrator.search(question, context);
         Duration remainingTimeout = deadline.remaining("search");
         if (searchResult.promptPreparation().optionalPrompt().isEmpty()) {
             return ChatCompletionResult.noEvidence(searchResult);

@@ -15,6 +15,9 @@ paths:
       summary: 관광 챗봇 질의
       description: |
         검색과 LLM 처리를 수행하고 근거 관광지와 함께 답변을 반환한다.
+        requestId는 UUID이며 같은 요청의 HTTP 재시도에서 동일하게 유지한다.
+        완료 응답은 5분간 재사용하고 처리 중 동일 요청은 409를 반환한다.
+        context는 Backend가 관리하는 임시 세션의 최근 메시지를 오래된 순서로 최대 10개 전달한다.
         timeoutMs는 Chatbot 내부 처리 시간 예산이며 기본값은 5000ms다.
         Backend HTTP Client timeout은 네트워크 여유를 포함해 이 값보다 길게 설정한다.
       parameters:
@@ -27,9 +30,11 @@ paths:
             schema:
               $ref: '#/components/schemas/ChatQueryRequest'
             example:
+              requestId: a22c717d-5a3e-46b5-92fc-f41624b85887
               sessionId: session-20260727-001
               userId: user-1004
               message: 서울에서 아이와 방문할 실내 관광지를 추천해줘
+              context: []
               timeoutMs: 5000
       responses:
         '200':
@@ -55,6 +60,19 @@ paths:
           headers:
             X-Trace-Id:
               $ref: '#/components/headers/TraceId'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: 동일 요청이 처리 중이거나 requestId가 다른 내용에 재사용됨
+          headers:
+            X-Trace-Id:
+              $ref: '#/components/headers/TraceId'
+            Retry-After:
+              description: 처리 중인 동일 요청의 권장 재시도 대기 시간(초)
+              schema:
+                type: integer
           content:
             application/json:
               schema:
@@ -113,10 +131,14 @@ components:
     ChatQueryRequest:
       type: object
       required:
+        - requestId
         - sessionId
         - userId
         - message
       properties:
+        requestId:
+          type: string
+          format: uuid
         sessionId:
           type: string
           minLength: 1
@@ -129,6 +151,12 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+        context:
+          type: array
+          maxItems: 10
+          default: []
+          items:
+            $ref: '#/components/schemas/ChatContextMessage'
         timeoutMs:
           type: integer
           minimum: 100
@@ -137,12 +165,16 @@ components:
     ChatQueryResponse:
       type: object
       required:
+        - requestId
         - answer
         - sources
         - traceId
         - status
         - processingTimeMs
       properties:
+        requestId:
+          type: string
+          format: uuid
         answer:
           type: string
         sources:
@@ -157,6 +189,21 @@ components:
           type: integer
           format: int64
           minimum: 0
+    ChatContextMessage:
+      type: object
+      required:
+        - role
+        - content
+      properties:
+        role:
+          type: string
+          enum:
+            - USER
+            - ASSISTANT
+        content:
+          type: string
+          minLength: 1
+          maxLength: 4000
     ChatSource:
       type: object
       required:
@@ -202,6 +249,8 @@ components:
           enum:
             - UNAUTHORIZED
             - INTERNAL_AUTH_NOT_CONFIGURED
+            - REQUEST_IN_PROGRESS
+            - REQUEST_ID_CONFLICT
             - INVALID_REQUEST
             - CHAT_QUERY_TIMEOUT
             - CHAT_PROCESSING_UNAVAILABLE

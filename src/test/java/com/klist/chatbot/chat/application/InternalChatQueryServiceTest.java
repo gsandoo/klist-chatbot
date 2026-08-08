@@ -18,6 +18,7 @@ import com.klist.chatbot.chat.application.llm.LlmClientException;
 import com.klist.chatbot.chat.application.llm.LlmFailureType;
 import java.time.Duration;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongSupplier;
 import java.util.stream.Stream;
@@ -29,6 +30,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 class InternalChatQueryServiceTest {
 
     private static final String TRACE_ID = "trace-001";
+    private static final UUID REQUEST_ID = UUID.fromString(
+            "a22c717d-5a3e-46b5-92fc-f41624b85887"
+    );
 
     private final ChatCompletionOrchestrator completionOrchestrator =
             mock(ChatCompletionOrchestrator.class);
@@ -211,7 +215,9 @@ class InternalChatQueryServiceTest {
     }
 
     private static InternalChatQueryRequest request(String message, Integer timeoutMs) {
-        return new InternalChatQueryRequest("session-001", "user-001", message, timeoutMs);
+        return new InternalChatQueryRequest(
+                REQUEST_ID, "session-001", "user-001", message, List.of(), timeoutMs
+        );
     }
 
     private static LongSupplier nanoTime(long... values) {

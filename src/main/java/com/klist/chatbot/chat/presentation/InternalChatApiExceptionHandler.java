@@ -3,6 +3,8 @@ package com.klist.chatbot.chat.presentation;
 import com.klist.chatbot.chat.application.ChatQueryTimeoutException;
 import com.klist.chatbot.chat.application.ChatProcessingFailedException;
 import com.klist.chatbot.chat.application.ChatProcessingUnavailableException;
+import com.klist.chatbot.chat.application.ChatRequestIdConflictException;
+import com.klist.chatbot.chat.application.ChatRequestInProgressException;
 import com.klist.chatbot.chat.presentation.error.InternalApiErrorResponse;
 import com.klist.chatbot.chat.presentation.error.InternalApiErrorResponse.FieldViolation;
 import com.klist.chatbot.chat.presentation.error.InternalChatApiErrorCode;
@@ -68,6 +70,39 @@ public class InternalChatApiExceptionHandler {
                 InternalApiErrorResponse.of(
                         InternalChatApiErrorCode.CHAT_QUERY_TIMEOUT.name(),
                         "The chatbot query timed out.",
+                        traceId
+                )
+        );
+    }
+
+    @ExceptionHandler(ChatRequestInProgressException.class)
+    ResponseEntity<InternalApiErrorResponse> handleRequestInProgress(
+            ChatRequestInProgressException exception,
+            HttpServletRequest request
+    ) {
+        String traceId = traceId(request);
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(TraceIdResolver.HEADER_NAME, traceId);
+        headers.set(HttpHeaders.RETRY_AFTER, "1");
+        return new ResponseEntity<>(InternalApiErrorResponse.of(
+                InternalChatApiErrorCode.REQUEST_IN_PROGRESS.name(),
+                "The same request is still being processed.",
+                traceId
+        ), headers, HttpStatus.CONFLICT);
+    }
+
+    @ExceptionHandler(ChatRequestIdConflictException.class)
+    ResponseEntity<InternalApiErrorResponse> handleRequestIdConflict(
+            ChatRequestIdConflictException exception,
+            HttpServletRequest request
+    ) {
+        String traceId = traceId(request);
+        return response(
+                HttpStatus.CONFLICT,
+                traceId,
+                InternalApiErrorResponse.of(
+                        InternalChatApiErrorCode.REQUEST_ID_CONFLICT.name(),
+                        "The request ID was already used for different content.",
                         traceId
                 )
         );

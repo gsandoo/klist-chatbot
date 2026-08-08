@@ -6,8 +6,10 @@ import com.klist.chatbot.chat.application.evidence.ChatEvidenceContext;
 import com.klist.chatbot.chat.application.evidence.ChatSearchEvidenceOrganizer;
 import com.klist.chatbot.chat.application.prompt.ChatPromptFactory;
 import com.klist.chatbot.chat.application.prompt.ChatPromptPreparation;
+import com.klist.chatbot.chat.application.prompt.ChatConversationMessage;
 import com.klist.chatbot.search.application.TouristSpotRetriever;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
+import java.util.List;
 import java.util.Objects;
 
 public class ChatSearchOrchestrator {
@@ -39,13 +41,16 @@ public class ChatSearchOrchestrator {
     }
 
     public ChatSearchResult search(String question) {
+        return search(question, List.of());
+    }
+
+    public ChatSearchResult search(String question, List<ChatConversationMessage> context) {
         ChatQuestionAnalysis analysis = questionAnalyzer.analyze(question);
         TouristSpotSearchResult searchResult = touristSpotRetriever.retrieve(analysis.searchCriteria());
         ChatEvidenceContext evidenceContext = evidenceOrganizer.organize(searchResult);
-        ChatPromptPreparation promptPreparation = promptFactory.prepare(
-                analysis.originalQuestion(),
-                evidenceContext
-        );
+        ChatPromptPreparation promptPreparation = context.isEmpty()
+                ? promptFactory.prepare(analysis.originalQuestion(), evidenceContext)
+                : promptFactory.prepare(analysis.originalQuestion(), context, evidenceContext);
         return new ChatSearchResult(analysis, searchResult, evidenceContext, promptPreparation);
     }
 }

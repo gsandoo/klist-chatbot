@@ -7,6 +7,7 @@ import com.klist.chatbot.chat.application.answer.ChatRecommendation;
 import com.klist.chatbot.chat.application.evidence.ChatTouristSpotEvidence;
 import com.klist.chatbot.chat.application.llm.LlmClientException;
 import com.klist.chatbot.chat.application.llm.LlmFailureType;
+import com.klist.chatbot.chat.application.prompt.ChatConversationMessage;
 import com.klist.chatbot.chat.presentation.dto.ChatQueryStatus;
 import com.klist.chatbot.chat.presentation.dto.ChatSourceResponse;
 import com.klist.chatbot.chat.presentation.dto.ChatSourceType;
@@ -69,6 +70,7 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
             Duration processingTime = elapsed(startedAt, nanoTime.getAsLong());
             InternalChatQueryResponse response = toResponse(
                     completionResult,
+                    request,
                     traceId,
                     processingTime.toMillis()
             );
@@ -86,11 +88,13 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
 
     private static InternalChatQueryResponse toResponse(
             ChatCompletionResult completionResult,
+            InternalChatQueryRequest request,
             String traceId,
             long processingTimeMs
     ) {
         if (completionResult.status() == ChatCompletionStatus.NO_EVIDENCE) {
             return new InternalChatQueryResponse(
+                    request.requestId(),
                     ChatNoResultGuidance.message(
                             completionResult.searchResult().questionAnalysis()
                     ),
@@ -102,6 +106,7 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
         }
         ChatGeneratedAnswer generatedAnswer = completionResult.generatedAnswer();
         return new InternalChatQueryResponse(
+                request.requestId(),
                 generatedAnswer.answer(),
                 toSources(completionResult, generatedAnswer),
                 traceId,
@@ -112,10 +117,17 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
 
     private ChatCompletionResult complete(InternalChatQueryRequest request) {
         try {
-            return completionOrchestrator.complete(
-                    request.message(),
-                    Duration.ofMillis(request.effectiveTimeoutMs())
-            );
+            Duration timeout = Duration.ofMillis(request.effectiveTimeoutMs());
+            if (request.context().isEmpty()) {
+                return completionOrchestrator.complete(request.message(), timeout);
+            }
+            List<ChatConversationMessage> context = request.context().stream()
+                    .map(message -> new ChatConversationMessage(
+                            message.role().name(),
+                            message.content()
+                    ))
+                    .toList();
+            return completionOrchestrator.complete(request.message(), context, timeout);
         } catch (LlmClientException exception) {
             throw translateLlmFailure(exception);
         } catch (ChatLlmResponseParsingException | ChatAnswerGroundingException exception) {

@@ -3,6 +3,7 @@ package com.klist.chatbot.chat.application.prompt;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.klist.chatbot.chat.application.evidence.ChatEvidenceContext;
+import java.util.List;
 import java.util.Objects;
 
 public class ChatPromptFactory {
@@ -25,15 +26,25 @@ public class ChatPromptFactory {
     }
 
     public ChatPromptPreparation prepare(String question, ChatEvidenceContext evidenceContext) {
+        return prepare(question, List.of(), evidenceContext);
+    }
+
+    public ChatPromptPreparation prepare(
+            String question,
+            List<ChatConversationMessage> context,
+            ChatEvidenceContext evidenceContext
+    ) {
         if (question == null || question.isBlank()) {
             throw new IllegalArgumentException("question must not be blank");
         }
+        Objects.requireNonNull(context, "context must not be null");
         Objects.requireNonNull(evidenceContext, "evidenceContext must not be null");
         if (evidenceContext.isEmpty()) {
             return ChatPromptPreparation.noEvidence();
         }
 
         String questionJson = serialize(question.trim(), "question");
+        String contextJson = serialize(context, "conversation context");
         String evidenceJson = serialize(evidenceContext.touristSpots(), "chat evidence");
         String userMessage = """
                 아래 사용자 질문에 검색 근거만 사용해 한국어로 답변하세요.
@@ -42,10 +53,14 @@ public class ChatPromptFactory {
                 %s
                 </user_question>
 
+                <conversation_context_json>
+                %s
+                </conversation_context_json>
+
                 <search_evidence_json>
                 %s
                 </search_evidence_json>
-                """.formatted(questionJson, evidenceJson);
+                """.formatted(questionJson, contextJson, evidenceJson);
         return ChatPromptPreparation.ready(new ChatPrompt(SYSTEM_MESSAGE, userMessage));
     }
 
