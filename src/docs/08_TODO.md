@@ -145,7 +145,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 ### P8. 오류, Retry 및 안정성
 
 - [x] Docker 비의존 Cloud Runtime 프로필과 환경변수 계약
-- [ ] Chatbot 공통 오류 타입
+- [x] Chat·LLM·검색·색인 공통 오류 타입과 재시도 가능 여부 분류
 - [x] Elasticsearch 일시 장애 Retry와 지수 Backoff
 - [x] LLM timeout, connection, 일부 5xx Retry
 - [x] Retry 비대상 오류 구분

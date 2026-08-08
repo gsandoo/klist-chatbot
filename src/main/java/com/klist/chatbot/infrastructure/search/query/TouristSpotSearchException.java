@@ -1,19 +1,17 @@
 package com.klist.chatbot.infrastructure.search.query;
 
-public class TouristSpotSearchException extends RuntimeException {
+import com.klist.chatbot.global.error.ChatbotErrorComponent;
+import com.klist.chatbot.global.error.ChatbotErrorType;
+import com.klist.chatbot.global.error.ChatbotException;
 
-    private final boolean retryable;
+public class TouristSpotSearchException extends ChatbotException {
 
     public TouristSpotSearchException(String message, Throwable cause) {
         this(message, cause, false);
     }
 
     public TouristSpotSearchException(String message, Throwable cause, boolean retryable) {
-        super(message, cause);
-        this.retryable = retryable;
-    }
-
-    public boolean retryable() {
-        return retryable;
+        super(ChatbotErrorComponent.SEARCH, ChatbotErrorType.SEARCH_FAILURE,
+                message, retryable, cause);
     }
 }

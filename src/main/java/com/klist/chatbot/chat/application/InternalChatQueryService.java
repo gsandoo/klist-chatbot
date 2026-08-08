@@ -12,6 +12,7 @@ import com.klist.chatbot.chat.presentation.dto.ChatSourceResponse;
 import com.klist.chatbot.chat.presentation.dto.ChatSourceType;
 import com.klist.chatbot.chat.presentation.dto.InternalChatQueryRequest;
 import com.klist.chatbot.chat.presentation.dto.InternalChatQueryResponse;
+import com.klist.chatbot.global.error.ChatbotException;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -169,38 +170,16 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
     }
 
     private static String failureReason(RuntimeException exception) {
-        if (exception instanceof ChatQueryTimeoutException) {
-            return "timeout";
-        }
-        if (exception instanceof ChatProcessingUnavailableException) {
-            return "unavailable";
-        }
-        if (exception instanceof ChatProcessingFailedException) {
-            return "invalid_response";
+        if (exception instanceof ChatbotException chatbotException) {
+            return chatbotException.errorType().metricTag();
         }
         return "unexpected";
     }
 
     private static String failureComponent(RuntimeException exception) {
-        if (exception instanceof ChatProcessingUnavailableException
-                || exception instanceof ChatProcessingFailedException) {
-            return "llm";
-        }
-        if (exception instanceof ChatQueryTimeoutException
-                && hasCause(exception, LlmClientException.class)) {
-            return "llm";
+        if (exception instanceof ChatbotException chatbotException) {
+            return chatbotException.component().metricTag();
         }
         return "chat";
-    }
-
-    private static boolean hasCause(Throwable failure, Class<? extends Throwable> type) {
-        Throwable current = failure;
-        while (current != null) {
-            if (type.isInstance(current)) {
-                return true;
-            }
-            current = current.getCause();
-        }
-        return false;
     }
 }

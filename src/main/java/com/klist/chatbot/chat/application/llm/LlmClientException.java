@@ -1,13 +1,15 @@
 package com.klist.chatbot.chat.application.llm;
 
+import com.klist.chatbot.global.error.ChatbotErrorComponent;
+import com.klist.chatbot.global.error.ChatbotErrorType;
+import com.klist.chatbot.global.error.ChatbotException;
 import java.util.Objects;
 
-public class LlmClientException extends RuntimeException {
+public class LlmClientException extends ChatbotException {
 
     private final LlmFailureType failureType;
     private final Integer httpStatus;
     private final String providerCode;
-    private final boolean retryable;
 
     public LlmClientException(
             LlmFailureType failureType,
@@ -17,11 +19,10 @@ public class LlmClientException extends RuntimeException {
             boolean retryable,
             Throwable cause
     ) {
-        super(message, cause);
+        super(ChatbotErrorComponent.LLM, errorType(failureType), message, retryable, cause);
         this.failureType = Objects.requireNonNull(failureType, "failureType must not be null");
         this.httpStatus = httpStatus;
         this.providerCode = providerCode;
-        this.retryable = retryable;
     }
 
     public LlmFailureType failureType() {
@@ -36,7 +37,12 @@ public class LlmClientException extends RuntimeException {
         return providerCode;
     }
 
-    public boolean retryable() {
-        return retryable;
+    private static ChatbotErrorType errorType(LlmFailureType failureType) {
+        Objects.requireNonNull(failureType, "failureType must not be null");
+        return switch (failureType) {
+            case TIMEOUT -> ChatbotErrorType.TIMEOUT;
+            case INVALID_RESPONSE -> ChatbotErrorType.INVALID_RESPONSE;
+            default -> ChatbotErrorType.EXTERNAL_SERVICE_FAILURE;
+        };
     }
 }
