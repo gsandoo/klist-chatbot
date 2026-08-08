@@ -165,7 +165,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] LLM 오류율
 - [x] 검색·LLM·전체 처리 시간 및 토큰 사용량 Micrometer 지표
 - [x] Actuator 및 Micrometer 기반 외부 연동 재시도·소진 지표
-- [ ] 구조화 로그와 요청 추적
+- [x] Cloud JSON 구조화 로그와 Chat 요청 완료 추적
 
 ### P10. 단계적 운영 검증
 

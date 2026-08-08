@@ -34,6 +34,14 @@ server:
   shutdown: graceful
   forward-headers-strategy: framework
 
+logging:
+  structured:
+    format:
+      console: ${LOGGING_STRUCTURED_FORMAT_CONSOLE:logstash}
+    json:
+      context:
+        include: true
+
 tour-api:
   service-key: ${TOUR_API_SERVICE_KEY:}
   ingestion:

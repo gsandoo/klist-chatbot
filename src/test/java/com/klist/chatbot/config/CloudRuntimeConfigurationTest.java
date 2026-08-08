@@ -30,6 +30,9 @@ class CloudRuntimeConfigurationTest {
         assertString(properties, "server.shutdown", "graceful");
         assertString(properties, "search.tourist-spots.bootstrap.mode",
                 "${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}");
+        assertString(properties, "logging.structured.format.console",
+                "${LOGGING_STRUCTURED_FORMAT_CONSOLE:logstash}");
+        assertString(properties, "logging.structured.json.context.include", "true");
     }
 
     @Test

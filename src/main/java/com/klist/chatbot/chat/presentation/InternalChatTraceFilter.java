@@ -5,6 +5,9 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -15,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class InternalChatTraceFilter extends OncePerRequestFilter {
 
+    private static final Logger log = LoggerFactory.getLogger(InternalChatTraceFilter.class);
     static final String MDC_KEY = "traceId";
 
     @Override
@@ -28,9 +32,17 @@ public class InternalChatTraceFilter extends OncePerRequestFilter {
         request.setAttribute(TraceIdResolver.REQUEST_ATTRIBUTE, traceId);
         response.setHeader(TraceIdResolver.HEADER_NAME, traceId);
         MDC.put(MDC_KEY, traceId);
+        long startedAt = System.nanoTime();
         try {
             filterChain.doFilter(request, response);
         } finally {
+            log.atInfo()
+                    .addKeyValue("event", "internal_chat_request_completed")
+                    .addKeyValue("httpMethod", request.getMethod())
+                    .addKeyValue("path", request.getRequestURI())
+                    .addKeyValue("status", response.getStatus())
+                    .addKeyValue("durationMs", elapsedMillis(startedAt))
+                    .log("Internal chat request completed");
             restorePreviousTraceId(previousTraceId);
         }
     }
@@ -47,5 +59,9 @@ public class InternalChatTraceFilter extends OncePerRequestFilter {
         } else {
             MDC.put(MDC_KEY, previousTraceId);
         }
+    }
+
+    private static long elapsedMillis(long startedAt) {
+        return TimeUnit.NANOSECONDS.toMillis(Math.max(0, System.nanoTime() - startedAt));
     }
 }
