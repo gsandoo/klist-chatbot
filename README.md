@@ -20,7 +20,12 @@ DB_PASSWORD=<database-password>
 ELASTICSEARCH_URIS=https://<elasticsearch-endpoint>
 ELASTICSEARCH_USERNAME=<elasticsearch-user>
 ELASTICSEARCH_PASSWORD=<elasticsearch-password>
+
+INTERNAL_API_KEY=<256-bit-random-secret>
 ```
+
+Backend는 모든 `/internal/**` 요청에 `X-Internal-Api-Key` 헤더로 같은 값을 전달해야 한다.
+키는 소스나 이미지에 포함하지 않고 배포 환경의 Secret Manager에서 환경변수로 주입한다.
 
 TourAPI 수집 또는 Scheduler를 사용할 때 추가하는 환경변수:
 

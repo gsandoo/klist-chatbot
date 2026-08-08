@@ -46,7 +46,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
   - 검색 근거
   - 처리 상태와 안전한 오류 코드
 - [x] Backend 원본 저장·문맥 조립 및 Chatbot 무상태 처리 책임 확정
-- [ ] 서비스 간 인증 방식 확정
+- [x] 서비스 간 인증 방식을 `X-Internal-Api-Key` 공유 키로 확정
 - [x] 일반 JSON 응답 계약
 - [x] 공통 에러 응답 계약
 - [x] timeout, traceId, source 계약
@@ -116,7 +116,7 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 ### P5. Backend 전용 Chat API
 
 - [x] Backend 전용 JSON Chat API를 실제 Completion 처리 흐름에 연결
-- [ ] Backend 전용 서비스 인증
+- [x] Backend 전용 `X-Internal-Api-Key` 서비스 인증
 - [ ] 외부 Client 직접 접근 차단
 - [x] 요청 traceId MDC 로깅
 - [x] API timeout 정책
@@ -187,11 +187,12 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 
 ### 1. Backend 전용 서비스 인증 및 외부 접근 차단
 
-- Backend와 Chatbot 사이의 인증 방식과 키 회전 방식을 확정한다.
-- `/internal/**` 요청에서 Backend 자격 증명을 검증한다.
-- 인증 누락·오류 요청을 안전한 공통 오류 응답으로 변환한다.
+- [x] Backend와 Chatbot 사이의 MVP 인증 방식을 공유 키로 확정한다.
+- [x] `/internal/**` 요청에서 Backend 자격 증명을 검증한다.
+- [x] 인증 누락·오류 요청을 안전한 공통 오류 응답으로 변환한다.
 - 외부 Client와 신뢰되지 않은 네트워크의 직접 접근을 차단한다.
-- 정상·누락·오류 자격 증명과 로그 마스킹을 통합 테스트한다.
+- [x] 정상·누락·오류 자격 증명과 설정 누락 fail-closed를 테스트한다.
+- [ ] Secret Manager 연동과 무중단 키 회전은 배포 환경 연결 단계에서 검증한다.
 
 이 단계는 보안 정책 변경이므로 구현 전에 `99_Autonomous_Development_Policy.md`에 따른 사용자
 확인을 받는다.
