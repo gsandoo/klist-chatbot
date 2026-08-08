@@ -57,6 +57,20 @@ TOURIST_SPOT_INDEX_BOOTSTRAP_MODE=reindex
 TOURIST_SPOT_INDEX_VERSION=v2
 ```
 
+색인 실패 재처리 Scheduler는 기본적으로 비활성화되어 있다. 운영 환경에서 다음 설정으로 활성화한다.
+
+```text
+TOURIST_SPOT_INDEX_FAILURE_RETRY_ENABLED=true
+TOURIST_SPOT_INDEX_FAILURE_RETRY_INTERVAL=30s
+TOURIST_SPOT_INDEX_FAILURE_RETRY_BATCH_SIZE=20
+TOURIST_SPOT_INDEX_FAILURE_RETRY_MAX_ATTEMPTS=5
+TOURIST_SPOT_INDEX_FAILURE_RETRY_INITIAL_BACKOFF=30s
+TOURIST_SPOT_INDEX_FAILURE_RETRY_MAX_BACKOFF=30m
+```
+
+단건·전체 색인 실패는 `tourist_spot_index_failure`에 기록된다. Elasticsearch 일시 장애만 재처리하며,
+매핑 오류와 원본 삭제, 최대 재시도 소진 건은 `EXHAUSTED` 상태로 격리한다.
+
 `reindex`에는 아직 존재하지 않는 새 버전을 지정해야 한다. 문서 변환이나 색인이 하나라도 실패하면
 Alias를 전환하지 않고 애플리케이션 시작을 실패시킨다. 초기 배포는 `initialize`, 데이터가 존재하는
 환경의 버전 교체 배포는 새 버전과 `reindex` 조합을 사용한다.
