@@ -178,6 +178,17 @@ Chatbot 서버는 관광 데이터 검색, 대화 조율, LLM 호출과 근거 �
 - [x] 추천 ID 및 URL·운영시간·요금·전화번호 근거 정확성·환각 평가
 - [ ] 부하 및 장애 테스트
 
+### P11. Speech-to-Text 음성 질문
+
+- [x] 교체 가능한 STT Client 인터페이스와 Service 계층
+- [x] OpenAI Audio Transcriptions Provider 구현
+- [x] mp3, mp4, mpeg, mpga, m4a, wav, webm 형식 검증
+- [x] 최대 25MB 파일 크기 검증
+- [x] timeout, Provider 실패와 빈 변환 결과 예외 처리
+- [x] STT 결과 텍스트를 기존 Chat 질문 흐름에 전달
+- [x] 음성 파일 비영속 처리
+- [x] 단위 및 HTTP 계약 테스트
+
 ## MVP 출시 우선순위
 
 다음 6개 항목을 MVP 출시 게이트로 지정한다. 번호 순서대로 구현하되, 서로 독립적인 테스트와 문서
