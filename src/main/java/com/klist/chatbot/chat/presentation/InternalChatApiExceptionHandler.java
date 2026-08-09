@@ -8,6 +8,7 @@ import com.klist.chatbot.chat.application.ChatRequestInProgressException;
 import com.klist.chatbot.chat.presentation.error.InternalApiErrorResponse;
 import com.klist.chatbot.chat.presentation.error.InternalApiErrorResponse.FieldViolation;
 import com.klist.chatbot.chat.presentation.error.InternalChatApiErrorCode;
+import com.klist.chatbot.speech.application.SpeechToTextException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import org.springframework.http.HttpHeaders;
@@ -19,7 +20,10 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = InternalChatQueryController.class)
+@RestControllerAdvice(assignableTypes = {
+        InternalChatQueryController.class,
+        InternalAudioChatQueryController.class
+})
 public class InternalChatApiExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -142,6 +146,34 @@ public class InternalChatApiExceptionHandler {
         );
     }
 
+    @ExceptionHandler(SpeechToTextException.class)
+    ResponseEntity<InternalApiErrorResponse> handleSpeechToText(
+            SpeechToTextException exception,
+            HttpServletRequest request
+    ) {
+        String traceId = traceId(request);
+        return switch (exception.failureType()) {
+            case INVALID_FILE -> response(HttpStatus.BAD_REQUEST, traceId,
+                    speechError(InternalChatApiErrorCode.STT_INVALID_FILE,
+                            "The audio file is invalid or unsupported.", traceId));
+            case FILE_TOO_LARGE -> response(HttpStatus.PAYLOAD_TOO_LARGE, traceId,
+                    speechError(InternalChatApiErrorCode.STT_FILE_TOO_LARGE,
+                            "The audio file is too large.", traceId));
+            case TIMEOUT -> response(HttpStatus.GATEWAY_TIMEOUT, traceId,
+                    speechError(InternalChatApiErrorCode.STT_TIMEOUT,
+                            "Speech transcription timed out.", traceId));
+            case EMPTY_RESULT -> response(HttpStatus.UNPROCESSABLE_ENTITY, traceId,
+                    speechError(InternalChatApiErrorCode.STT_EMPTY_RESULT,
+                            "No speech could be transcribed.", traceId));
+            case PROVIDER_UNAVAILABLE, CONFIGURATION -> response(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    traceId,
+                    speechError(InternalChatApiErrorCode.STT_UNAVAILABLE,
+                            "Speech transcription is not available.", traceId)
+            );
+        };
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<InternalApiErrorResponse> handleUnexpected(
             Exception exception,
@@ -161,6 +193,14 @@ public class InternalChatApiExceptionHandler {
 
     private FieldViolation toViolation(FieldError error) {
         return new FieldViolation(error.getField(), error.getDefaultMessage());
+    }
+
+    private InternalApiErrorResponse speechError(
+            InternalChatApiErrorCode code,
+            String message,
+            String traceId
+    ) {
+        return InternalApiErrorResponse.of(code.name(), message, traceId);
     }
 
     private String traceId(HttpServletRequest request) {

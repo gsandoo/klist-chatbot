@@ -104,6 +104,75 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /internal/chat/query/audio:
+    post:
+      operationId: queryChatbotWithAudio
+      summary: 음성 관광 챗봇 질의
+      description: |
+        음성을 텍스트로 변환한 뒤 기존 JSON Chat 질문 처리 흐름에 전달한다.
+        음성 원본은 저장하지 않는다. 지원 형식은 mp3, mp4, mpeg, mpga, m4a, wav, webm이며
+        최대 크기는 25MB다.
+      parameters:
+        - $ref: '#/components/parameters/TraceId'
+        - $ref: '#/components/parameters/InternalApiKey'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - request
+                - audio
+              properties:
+                request:
+                  $ref: '#/components/schemas/AudioChatQueryRequest'
+                audio:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 음성 변환 및 질의 처리 완료
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatQueryResponse'
+        '400':
+          description: 요청 또는 음성 형식 검증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 내부 API 인증 실패
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '413':
+          description: 음성 파일 크기 초과
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: 변환된 음성 텍스트가 비어 있음
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: STT Provider 또는 Chat 처리가 일시적으로 사용 불가함
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '504':
+          description: STT 또는 Chat 처리가 제한 시간을 초과함
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   parameters:
     InternalApiKey:
@@ -151,6 +220,35 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+        context:
+          type: array
+          maxItems: 10
+          default: []
+          items:
+            $ref: '#/components/schemas/ChatContextMessage'
+        timeoutMs:
+          type: integer
+          minimum: 100
+          maximum: 30000
+          default: 5000
+    AudioChatQueryRequest:
+      type: object
+      required:
+        - requestId
+        - sessionId
+        - userId
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        sessionId:
+          type: string
+          minLength: 1
+          maxLength: 100
+        userId:
+          type: string
+          minLength: 1
+          maxLength: 100
         context:
           type: array
           maxItems: 10
@@ -255,6 +353,11 @@ components:
             - CHAT_QUERY_TIMEOUT
             - CHAT_PROCESSING_UNAVAILABLE
             - CHAT_PROCESSING_FAILED
+            - STT_INVALID_FILE
+            - STT_FILE_TOO_LARGE
+            - STT_TIMEOUT
+            - STT_EMPTY_RESULT
+            - STT_UNAVAILABLE
             - INTERNAL_ERROR
         message:
           type: string
