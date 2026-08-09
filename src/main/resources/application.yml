@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 26MB
+      max-request-size: 27MB
   application:
     name: klist-chatbot
   profiles:
@@ -79,3 +83,14 @@ llm:
     retry-max-attempts: ${OPENAI_RETRY_MAX_ATTEMPTS:3}
     retry-initial-backoff: ${OPENAI_RETRY_INITIAL_BACKOFF:100ms}
     retry-max-backoff: ${OPENAI_RETRY_MAX_BACKOFF:1s}
+
+stt:
+  max-file-size: ${STT_MAX_FILE_SIZE:26214400}
+  timeout: ${STT_TIMEOUT:20s}
+  openai:
+    enabled: ${STT_OPENAI_ENABLED:false}
+    base-url: ${STT_OPENAI_BASE_URL:https://api.openai.com/v1}
+    api-key: ${STT_OPENAI_API_KEY:}
+    model: ${STT_OPENAI_MODEL:gpt-4o-mini-transcribe}
+    language: ${STT_OPENAI_LANGUAGE:ko}
+    connect-timeout: ${STT_OPENAI_CONNECT_TIMEOUT:3s}
