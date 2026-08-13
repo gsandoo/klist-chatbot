@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 26MB
+      max-request-size: 27MB
   application:
     name: klist-chatbot
   profiles:
@@ -6,10 +10,18 @@ spring:
   flyway:
     enabled: true
     locations: classpath:db/migration
-    baseline-on-migrate: false
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
   jpa:
     hibernate:
       ddl-auto: validate
+
+logging:
+  pattern:
+    correlation: "[traceId=%X{traceId:-}] "
+
+internal-api:
+  auth:
+    key: ${INTERNAL_API_KEY:}
 
 tour-api:
   base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}
@@ -19,6 +31,10 @@ tour-api:
   response-type: json
   connect-timeout: ${TOUR_API_CONNECT_TIMEOUT:3s}
   response-timeout: ${TOUR_API_RESPONSE_TIMEOUT:5s}
+  request-interval: ${TOUR_API_REQUEST_INTERVAL:100ms}
+  retry-max-attempts: ${TOUR_API_RETRY_MAX_ATTEMPTS:3}
+  retry-initial-backoff: ${TOUR_API_RETRY_INITIAL_BACKOFF:200ms}
+  retry-max-backoff: ${TOUR_API_RETRY_MAX_BACKOFF:2s}
 
 search:
   tourist-spots:
@@ -26,7 +42,55 @@ search:
     version: v1
     settings-location: classpath:elasticsearch/tourist-spots-settings.json
     mappings-location: classpath:elasticsearch/tourist-spots-mappings.json
+    retry-max-attempts: ${ELASTICSEARCH_SEARCH_RETRY_MAX_ATTEMPTS:3}
+    retry-initial-backoff: ${ELASTICSEARCH_SEARCH_RETRY_INITIAL_BACKOFF:100ms}
+    retry-max-backoff: ${ELASTICSEARCH_SEARCH_RETRY_MAX_BACKOFF:1s}
+    cache:
+      enabled: false
+      ttl: 5m
+      key-prefix: "klist:search:tourist-spots:"
+    failure-retry:
+      enabled: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_ENABLED:false}
+      interval: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_INTERVAL:30s}
+      batch-size: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_BATCH_SIZE:20}
+      max-attempts: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_MAX_ATTEMPTS:5}
+      initial-backoff: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_INITIAL_BACKOFF:30s}
+      max-backoff: ${TOURIST_SPOT_INDEX_FAILURE_RETRY_MAX_BACKOFF:30m}
     bootstrap:
       mode: ${TOURIST_SPOT_INDEX_BOOTSTRAP_MODE:none}
     reindex:
       page-size: ${TOURIST_SPOT_REINDEX_PAGE_SIZE:500}
+
+chat:
+  idempotency:
+    enabled: ${CHAT_IDEMPOTENCY_ENABLED:true}
+    ttl: ${CHAT_IDEMPOTENCY_TTL:5m}
+    key-prefix: ${CHAT_IDEMPOTENCY_KEY_PREFIX:klist:chat:request:}
+  question-analysis:
+    result-size: ${CHAT_SEARCH_RESULT_SIZE:5}
+    minimum-score: ${CHAT_SEARCH_MINIMUM_SCORE:0.1}
+
+llm:
+  openai:
+    enabled: ${OPENAI_ENABLED:false}
+    base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
+    api-key: ${OPENAI_API_KEY:}
+    model: ${OPENAI_MODEL:gpt-5.6-sol}
+    reasoning-effort: ${OPENAI_REASONING_EFFORT:low}
+    max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:1200}
+    connect-timeout: ${OPENAI_CONNECT_TIMEOUT:3s}
+    response-timeout: ${OPENAI_RESPONSE_TIMEOUT:20s}
+    retry-max-attempts: ${OPENAI_RETRY_MAX_ATTEMPTS:3}
+    retry-initial-backoff: ${OPENAI_RETRY_INITIAL_BACKOFF:100ms}
+    retry-max-backoff: ${OPENAI_RETRY_MAX_BACKOFF:1s}
+
+stt:
+  max-file-size: ${STT_MAX_FILE_SIZE:26214400}
+  timeout: ${STT_TIMEOUT:20s}
+  openai:
+    enabled: ${STT_OPENAI_ENABLED:false}
+    base-url: ${STT_OPENAI_BASE_URL:https://api.openai.com/v1}
+    api-key: ${STT_OPENAI_API_KEY:}
+    model: ${STT_OPENAI_MODEL:gpt-4o-mini-transcribe}
+    language: ${STT_OPENAI_LANGUAGE:ko}
+    connect-timeout: ${STT_OPENAI_CONNECT_TIMEOUT:3s}

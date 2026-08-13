@@ -9,12 +9,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.klist.chatbot.chat.application.ChatQueryTimeoutException;
+import com.klist.chatbot.chat.application.ChatProcessingFailedException;
+import com.klist.chatbot.chat.application.ChatProcessingUnavailableException;
+import com.klist.chatbot.chat.application.ChatRequestIdConflictException;
+import com.klist.chatbot.chat.application.ChatRequestInProgressException;
 import com.klist.chatbot.chat.application.InternalChatQueryUseCase;
 import com.klist.chatbot.chat.presentation.dto.ChatQueryStatus;
 import com.klist.chatbot.chat.presentation.dto.ChatSourceResponse;
 import com.klist.chatbot.chat.presentation.dto.ChatSourceType;
 import com.klist.chatbot.chat.presentation.dto.InternalChatQueryResponse;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -26,6 +31,10 @@ import org.springframework.test.web.servlet.MockMvc;
 class InternalChatQueryControllerContractTest {
 
     private static final String TRACE_ID = "trace-backend-001";
+    private static final String INTERNAL_API_KEY = "test-internal-api-key";
+    private static final UUID REQUEST_ID = UUID.fromString(
+            "a22c717d-5a3e-46b5-92fc-f41624b85887"
+    );
 
     @Autowired
     private MockMvc mockMvc;
@@ -36,6 +45,7 @@ class InternalChatQueryControllerContractTest {
     @Test
     void returnsAnswerSourcesTraceIdAndStatus() throws Exception {
         when(chatQueryUseCase.query(any(), eq(TRACE_ID))).thenReturn(new InternalChatQueryResponse(
+                REQUEST_ID,
                 "아이와 방문하기 좋은 실내 관광지입니다.",
                 List.of(new ChatSourceResponse(
                         126480L,
@@ -51,9 +61,11 @@ class InternalChatQueryControllerContractTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "requestId": "a22c717d-5a3e-46b5-92fc-f41624b85887",
                                   "sessionId": "session-001",
                                   "userId": "user-001",
                                   "message": "서울 실내 관광지를 추천해줘",
@@ -63,6 +75,7 @@ class InternalChatQueryControllerContractTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Trace-Id", TRACE_ID))
                 .andExpect(jsonPath("$.answer").value("아이와 방문하기 좋은 실내 관광지입니다."))
+                .andExpect(jsonPath("$.requestId").value(REQUEST_ID.toString()))
                 .andExpect(jsonPath("$.sources[0].touristSpotId").value(126480))
                 .andExpect(jsonPath("$.sources[0].type").value("TOURIST_SPOT"))
                 .andExpect(jsonPath("$.traceId").value(TRACE_ID))
@@ -74,9 +87,11 @@ class InternalChatQueryControllerContractTest {
     void returnsValidationErrorWithTraceId() throws Exception {
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "requestId": "a22c717d-5a3e-46b5-92fc-f41624b85887",
                                   "sessionId": "",
                                   "userId": "user-001",
                                   "message": "",
@@ -98,9 +113,11 @@ class InternalChatQueryControllerContractTest {
 
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "requestId": "a22c717d-5a3e-46b5-92fc-f41624b85887",
                                   "sessionId": "session-001",
                                   "userId": "user-001",
                                   "message": "서울 관광지를 추천해줘"
@@ -115,10 +132,83 @@ class InternalChatQueryControllerContractTest {
     }
 
     @Test
+    void returnsSafeProcessingFailedErrorUsingSameTraceId() throws Exception {
+        when(chatQueryUseCase.query(any(), eq(TRACE_ID)))
+                .thenThrow(new ChatProcessingFailedException(
+                        "sensitive provider response",
+                        new RuntimeException("raw model output")
+                ));
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest()))
+                .andExpect(status().isInternalServerError())
+                .andExpect(header().string("X-Trace-Id", TRACE_ID))
+                .andExpect(jsonPath("$.code").value("CHAT_PROCESSING_FAILED"))
+                .andExpect(jsonPath("$.message").value(
+                        "The chatbot response could not be validated."
+                ))
+                .andExpect(jsonPath("$.traceId").value(TRACE_ID))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers
+                        .content().string(org.hamcrest.Matchers.not(
+                                org.hamcrest.Matchers.containsString("sensitive provider response")
+                        )));
+    }
+
+    @Test
+    void returnsServiceUnavailableForLlmAvailabilityFailure() throws Exception {
+        when(chatQueryUseCase.query(any(), eq(TRACE_ID)))
+                .thenThrow(new ChatProcessingUnavailableException("provider unavailable"));
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest()))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.code").value("CHAT_PROCESSING_UNAVAILABLE"))
+                .andExpect(jsonPath("$.message").value("Chat processing is not available."));
+    }
+
+    @Test
+    void returnsConflictAndRetryAfterWhenSameRequestIsProcessing() throws Exception {
+        when(chatQueryUseCase.query(any(), eq(TRACE_ID)))
+                .thenThrow(new ChatRequestInProgressException());
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest()))
+                .andExpect(status().isConflict())
+                .andExpect(header().string("Retry-After", "1"))
+                .andExpect(jsonPath("$.code").value("REQUEST_IN_PROGRESS"))
+                .andExpect(jsonPath("$.traceId").value(TRACE_ID));
+    }
+
+    @Test
+    void returnsConflictWhenRequestIdHasDifferentContent() throws Exception {
+        when(chatQueryUseCase.query(any(), eq(TRACE_ID)))
+                .thenThrow(new ChatRequestIdConflictException());
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("REQUEST_ID_CONFLICT"))
+                .andExpect(jsonPath("$.traceId").value(TRACE_ID));
+    }
+
+    @Test
     void generatesTraceIdWhenBackendDoesNotProvideOne() throws Exception {
         when(chatQueryUseCase.query(any(), any())).thenAnswer(invocation -> {
             String generatedTraceId = invocation.getArgument(1);
             return new InternalChatQueryResponse(
+                    REQUEST_ID,
                     "검색 결과가 없습니다.",
                     List.of(),
                     generatedTraceId,
@@ -128,9 +218,11 @@ class InternalChatQueryControllerContractTest {
         });
 
         mockMvc.perform(post("/internal/chat/query")
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
+                                  "requestId": "a22c717d-5a3e-46b5-92fc-f41624b85887",
                                   "sessionId": "session-001",
                                   "userId": "user-001",
                                   "message": "없는 관광지를 찾아줘"
@@ -141,5 +233,17 @@ class InternalChatQueryControllerContractTest {
                 .andExpect(jsonPath("$.traceId").isNotEmpty())
                 .andExpect(jsonPath("$.status").value("NO_RESULT"))
                 .andExpect(jsonPath("$.sources").isEmpty());
+    }
+
+    private static String validRequest() {
+        return """
+                {
+                  "requestId": "a22c717d-5a3e-46b5-92fc-f41624b85887",
+                  "sessionId": "session-001",
+                  "userId": "user-001",
+                  "message": "서울 관광지를 추천해줘",
+                  "timeoutMs": 5000
+                }
+                """;
     }
 }

@@ -12,6 +12,9 @@ import com.klist.chatbot.search.application.TouristSpotSearchGateway;
 import com.klist.chatbot.search.application.TouristSpotSearchResult;
 import java.util.ArrayList;
 import java.util.List;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
+import org.springframework.dao.TransientDataAccessException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.elasticsearch.client.elc.NativeQuery;
 import org.springframework.data.elasticsearch.client.elc.NativeQueryBuilder;
@@ -61,8 +64,25 @@ public class ElasticsearchTouristSpotSearchGateway implements TouristSpotSearchG
                     hits.getExecutionDuration()
             );
         } catch (RuntimeException exception) {
-            throw new TouristSpotSearchException("Unable to search tourist spots.", exception);
+            throw new TouristSpotSearchException(
+                    "Unable to search tourist spots.",
+                    exception,
+                    isRetryable(exception)
+            );
         }
+    }
+
+    private static boolean isRetryable(Throwable failure) {
+        Throwable current = failure;
+        while (current != null) {
+            if (current instanceof TransientDataAccessException
+                    || current instanceof ConnectException
+                    || current instanceof SocketTimeoutException) {
+                return true;
+            }
+            current = current.getCause();
+        }
+        return false;
     }
 
     NativeQuery buildQuery(TouristSpotSearchCriteria criteria) {
