@@ -266,6 +266,7 @@ components:
         - requestId
         - answer
         - sources
+        - suggestions
         - traceId
         - status
         - processingTimeMs
@@ -279,6 +280,11 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/ChatSource'
+        suggestions:
+          type: array
+          description: 현재 상태에서 사용자가 이어서 질문할 수 있는 예시입니다.
+          items:
+            type: string
         traceId:
           type: string
         status:
@@ -333,6 +339,8 @@ components:
       enum:
         - COMPLETED
         - NO_RESULT
+        - UNSUPPORTED
+        - CLARIFICATION_REQUIRED
     ErrorResponse:
       type: object
       required:

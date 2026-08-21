@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.LongSupplier;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 
@@ -104,6 +105,22 @@ class ChatCompletionOrchestratorTest {
         assertThat(result.optionalGenerationResult()).isEmpty();
         assertThat(result.optionalGeneratedAnswer()).isEmpty();
         verifyNoInteractions(llmClient, responseParser, answerValidator);
+    }
+
+    @ParameterizedTest
+    @org.junit.jupiter.params.provider.CsvSource({
+            "삼성전자 주가 알려줘, UNSUPPORTED",
+            "추천해줘, CLARIFICATION_REQUIRED"
+    })
+    void classifiesNonSearchQuestionsWithoutSearchOrLlm(
+            String question,
+            ChatCompletionStatus expectedStatus
+    ) {
+        ChatCompletionResult result = orchestrator.complete(question, Duration.ofSeconds(5));
+
+        assertThat(result.status()).isEqualTo(expectedStatus);
+        assertThat(result.searchResult()).isNull();
+        verifyNoInteractions(searchOrchestrator, llmClient, responseParser, answerValidator);
     }
 
     @Test

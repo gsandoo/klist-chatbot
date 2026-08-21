@@ -19,6 +19,7 @@ public class ChatCompletionOrchestrator {
     private final LlmClient llmClient;
     private final ChatLlmResponseParser responseParser;
     private final ChatGeneratedAnswerValidator answerValidator;
+    private final ChatQuestionDispositionClassifier dispositionClassifier;
     private final LongSupplier nanoTime;
 
     public ChatCompletionOrchestrator(
@@ -27,7 +28,8 @@ public class ChatCompletionOrchestrator {
             ChatLlmResponseParser responseParser,
             ChatGeneratedAnswerValidator answerValidator
     ) {
-        this(searchOrchestrator, llmClient, responseParser, answerValidator, System::nanoTime);
+        this(searchOrchestrator, llmClient, responseParser, answerValidator,
+                new ChatQuestionDispositionClassifier(), System::nanoTime);
     }
 
     ChatCompletionOrchestrator(
@@ -35,6 +37,18 @@ public class ChatCompletionOrchestrator {
             LlmClient llmClient,
             ChatLlmResponseParser responseParser,
             ChatGeneratedAnswerValidator answerValidator,
+            LongSupplier nanoTime
+    ) {
+        this(searchOrchestrator, llmClient, responseParser, answerValidator,
+                new ChatQuestionDispositionClassifier(), nanoTime);
+    }
+
+    ChatCompletionOrchestrator(
+            ChatSearchOrchestrator searchOrchestrator,
+            LlmClient llmClient,
+            ChatLlmResponseParser responseParser,
+            ChatGeneratedAnswerValidator answerValidator,
+            ChatQuestionDispositionClassifier dispositionClassifier,
             LongSupplier nanoTime
     ) {
         this.searchOrchestrator = Objects.requireNonNull(
@@ -50,6 +64,9 @@ public class ChatCompletionOrchestrator {
                 answerValidator,
                 "answerValidator must not be null"
         );
+        this.dispositionClassifier = Objects.requireNonNull(
+                dispositionClassifier, "dispositionClassifier must not be null"
+        );
         this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime must not be null");
     }
 
@@ -62,6 +79,13 @@ public class ChatCompletionOrchestrator {
             List<ChatConversationMessage> context,
             Duration timeout
     ) {
+        ChatQuestionDisposition disposition = dispositionClassifier.classify(question);
+        if (disposition == ChatQuestionDisposition.UNSUPPORTED) {
+            return ChatCompletionResult.unsupported();
+        }
+        if (disposition == ChatQuestionDisposition.CLARIFICATION_REQUIRED) {
+            return ChatCompletionResult.clarificationRequired();
+        }
         ChatProcessingDeadline deadline = new ChatProcessingDeadline(timeout, nanoTime);
         ChatSearchResult searchResult = context.isEmpty()
                 ? searchOrchestrator.search(question, List.of(), timeout)

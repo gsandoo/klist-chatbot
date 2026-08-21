@@ -103,8 +103,30 @@ class InternalChatQueryServiceTest {
                 "조건에 맞는 관광지를 찾지 못했습니다. 다른 지역이나 관광 유형으로 질문해 주세요."
         );
         assertThat(response.sources()).isEmpty();
+        assertThat(response.suggestions()).hasSize(2);
         assertThat(response.status()).isEqualTo(ChatQueryStatus.NO_RESULT);
         assertThat(response.processingTimeMs()).isEqualTo(5L);
+    }
+
+    @ParameterizedTest
+    @MethodSource("nonSearchStatuses")
+    void returnsNonSearchStatusWithAnswerAndSuggestions(
+            ChatCompletionResult completionResult,
+            ChatQueryStatus expectedStatus
+    ) {
+        InternalChatQueryRequest request = request("질문", null);
+        when(completionOrchestrator.complete(request.message(), Duration.ofMillis(30000)))
+                .thenReturn(completionResult);
+        InternalChatQueryService service = new InternalChatQueryService(
+                completionOrchestrator, nanoTime(0L, 1_000_000L)
+        );
+
+        var response = service.query(request, TRACE_ID);
+
+        assertThat(response.status()).isEqualTo(expectedStatus);
+        assertThat(response.answer()).isNotBlank();
+        assertThat(response.suggestions()).isNotEmpty().allMatch(value -> !value.isBlank());
+        assertThat(response.sources()).isEmpty();
     }
 
     @Test
@@ -226,6 +248,16 @@ class InternalChatQueryServiceTest {
                 Arguments.of(LlmFailureType.HTTP, false, ChatProcessingFailedException.class),
                 Arguments.of(LlmFailureType.INVALID_RESPONSE, false,
                         ChatProcessingFailedException.class)
+        );
+    }
+
+    private static Stream<Arguments> nonSearchStatuses() {
+        return Stream.of(
+                Arguments.of(ChatCompletionResult.unsupported(), ChatQueryStatus.UNSUPPORTED),
+                Arguments.of(
+                        ChatCompletionResult.clarificationRequired(),
+                        ChatQueryStatus.CLARIFICATION_REQUIRED
+                )
         );
     }
 

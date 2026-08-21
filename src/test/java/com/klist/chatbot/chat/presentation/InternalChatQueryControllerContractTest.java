@@ -21,6 +21,8 @@ import com.klist.chatbot.chat.presentation.dto.InternalChatQueryResponse;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
@@ -80,7 +82,36 @@ class InternalChatQueryControllerContractTest {
                 .andExpect(jsonPath("$.sources[0].type").value("TOURIST_SPOT"))
                 .andExpect(jsonPath("$.traceId").value(TRACE_ID))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
+                .andExpect(jsonPath("$.suggestions").isArray())
                 .andExpect(jsonPath("$.processingTimeMs").value(243));
+    }
+
+    @ParameterizedTest
+    @EnumSource(ChatQueryStatus.class)
+    void returnsEveryNormalStatusAsHttp200WithAnswerAndSuggestions(
+            ChatQueryStatus responseStatus
+    ) throws Exception {
+        when(chatQueryUseCase.query(any(), eq(TRACE_ID))).thenReturn(
+                new InternalChatQueryResponse(
+                        REQUEST_ID,
+                        "사용자 안내 답변",
+                        List.of(),
+                        List.of("후속 질문 예시"),
+                        TRACE_ID,
+                        responseStatus,
+                        12L
+                )
+        );
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(validRequest()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(responseStatus.name()))
+                .andExpect(jsonPath("$.answer").value("사용자 안내 답변"))
+                .andExpect(jsonPath("$.suggestions[0]").value("후속 질문 예시"));
     }
 
     @Test

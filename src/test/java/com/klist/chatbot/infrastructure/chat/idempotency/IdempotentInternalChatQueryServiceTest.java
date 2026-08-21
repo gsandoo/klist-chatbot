@@ -79,6 +79,7 @@ class IdempotentInternalChatQueryServiceTest {
 
         assertThat(first.traceId()).isEqualTo("trace-first");
         assertThat(retried.answer()).isEqualTo(first.answer());
+        assertThat(retried.suggestions()).containsExactly("다른 지역도 찾아줘");
         assertThat(retried.traceId()).isEqualTo("trace-retry");
         verify(delegate, times(1)).query(any(), anyString());
         verify(valueOperations).set(
@@ -156,6 +157,7 @@ class IdempotentInternalChatQueryServiceTest {
                 REQUEST_ID,
                 "답변",
                 List.of(),
+                List.of("다른 지역도 찾아줘"),
                 traceId,
                 ChatQueryStatus.COMPLETED,
                 100

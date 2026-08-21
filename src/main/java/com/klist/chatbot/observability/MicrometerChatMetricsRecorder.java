@@ -19,6 +19,9 @@ public class MicrometerChatMetricsRecorder implements ChatMetricsRecorder {
     public void completed(ChatCompletionResult result, Duration totalTime) {
         String status = result.status().name().toLowerCase(java.util.Locale.ROOT);
         registry.timer("chatbot.chat.duration", "status", status).record(totalTime);
+        if (result.searchResult() == null) {
+            return;
+        }
         registry.timer("chatbot.search.duration", "status", status)
                 .record(result.searchResult().touristSpotSearchResult().executionTime());
         String searchOutcome = result.status() == com.klist.chatbot.chat.application.ChatCompletionStatus.NO_EVIDENCE

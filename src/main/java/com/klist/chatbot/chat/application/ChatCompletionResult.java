@@ -14,7 +14,10 @@ public record ChatCompletionResult(
 
     public ChatCompletionResult {
         Objects.requireNonNull(status, "status must not be null");
-        Objects.requireNonNull(searchResult, "searchResult must not be null");
+        if ((status == ChatCompletionStatus.COMPLETED
+                || status == ChatCompletionStatus.NO_EVIDENCE) && searchResult == null) {
+            throw new IllegalArgumentException(status + " result requires a search result");
+        }
         if (status == ChatCompletionStatus.COMPLETED
                 && (generationResult == null || generatedAnswer == null)) {
             throw new IllegalArgumentException(
@@ -26,6 +29,11 @@ public record ChatCompletionResult(
             throw new IllegalArgumentException(
                     "NO_EVIDENCE result must not contain generated values"
             );
+        }
+        if ((status == ChatCompletionStatus.UNSUPPORTED
+                || status == ChatCompletionStatus.CLARIFICATION_REQUIRED)
+                && (searchResult != null || generationResult != null || generatedAnswer != null)) {
+            throw new IllegalArgumentException(status + " result must not contain generated values");
         }
     }
 
@@ -48,6 +56,16 @@ public record ChatCompletionResult(
                 searchResult,
                 null,
                 null
+        );
+    }
+
+    public static ChatCompletionResult unsupported() {
+        return new ChatCompletionResult(ChatCompletionStatus.UNSUPPORTED, null, null, null);
+    }
+
+    public static ChatCompletionResult clarificationRequired() {
+        return new ChatCompletionResult(
+                ChatCompletionStatus.CLARIFICATION_REQUIRED, null, null, null
         );
     }
 

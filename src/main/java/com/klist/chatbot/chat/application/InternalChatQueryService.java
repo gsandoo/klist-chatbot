@@ -113,15 +113,30 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
             long processingTimeMs
     ) {
         if (completionResult.status() == ChatCompletionStatus.NO_EVIDENCE) {
+            ChatFallbackResponse fallback = ChatFallbackResponses.noResult(
+                    completionResult.searchResult().questionAnalysis()
+            );
             return new InternalChatQueryResponse(
                     request.requestId(),
-                    ChatNoResultGuidance.message(
-                            completionResult.searchResult().questionAnalysis()
-                    ),
+                    fallback.answer(),
                     List.of(),
+                    fallback.suggestions(),
                     traceId,
                     ChatQueryStatus.NO_RESULT,
                     processingTimeMs
+            );
+        }
+        if (completionResult.status() == ChatCompletionStatus.UNSUPPORTED) {
+            return fallbackResponse(
+                    request, traceId, processingTimeMs, ChatQueryStatus.UNSUPPORTED,
+                    ChatFallbackResponses.unsupported()
+            );
+        }
+        if (completionResult.status() == ChatCompletionStatus.CLARIFICATION_REQUIRED) {
+            return fallbackResponse(
+                    request, traceId, processingTimeMs,
+                    ChatQueryStatus.CLARIFICATION_REQUIRED,
+                    ChatFallbackResponses.clarificationRequired()
             );
         }
         ChatGeneratedAnswer generatedAnswer = completionResult.generatedAnswer();
@@ -129,9 +144,23 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
                 request.requestId(),
                 generatedAnswer.answer(),
                 toSources(completionResult, generatedAnswer),
+                List.of(),
                 traceId,
                 ChatQueryStatus.COMPLETED,
                 processingTimeMs
+        );
+    }
+
+    private static InternalChatQueryResponse fallbackResponse(
+            InternalChatQueryRequest request,
+            String traceId,
+            long processingTimeMs,
+            ChatQueryStatus status,
+            ChatFallbackResponse fallback
+    ) {
+        return new InternalChatQueryResponse(
+                request.requestId(), fallback.answer(), List.of(), fallback.suggestions(),
+                traceId, status, processingTimeMs
         );
     }
 

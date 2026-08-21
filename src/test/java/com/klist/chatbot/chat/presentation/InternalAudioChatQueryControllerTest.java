@@ -58,6 +58,7 @@ class InternalAudioChatQueryControllerTest {
                 REQUEST_ID,
                 "경복궁을 추천합니다.",
                 List.of(),
+                List.of("부산 관광지도 알려줘"),
                 TRACE_ID,
                 ChatQueryStatus.COMPLETED,
                 120L
@@ -71,7 +72,8 @@ class InternalAudioChatQueryControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(header().string("X-Trace-Id", TRACE_ID))
                 .andExpect(jsonPath("$.status").value("COMPLETED"))
-                .andExpect(jsonPath("$.answer").value("경복궁을 추천합니다."));
+                .andExpect(jsonPath("$.answer").value("경복궁을 추천합니다."))
+                .andExpect(jsonPath("$.suggestions[0]").value("부산 관광지도 알려줘"));
 
         ArgumentCaptor<SpeechAudio> audioCaptor = ArgumentCaptor.forClass(SpeechAudio.class);
         verify(transcriptionService).transcribe(audioCaptor.capture());
