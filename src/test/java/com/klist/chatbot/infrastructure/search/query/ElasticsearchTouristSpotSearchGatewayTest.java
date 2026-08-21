@@ -65,6 +65,8 @@ class ElasticsearchTouristSpotSearchGatewayTest {
                 .contains("title.keyword");
         assertThat(query.getPageable().getPageSize()).isEqualTo(7);
         assertThat(query.getMinScore()).isEqualTo(1.5f);
+        assertThat(query.getSourceFilter()).isNotNull();
+        assertThat(query.getSourceFilter().getExcludes()).containsExactly("sourceModifiedAt");
     }
 
     @Test

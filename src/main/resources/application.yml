@@ -39,7 +39,7 @@ tour-api:
 search:
   tourist-spots:
     alias: tourist-spots
-    version: v1
+    version: v2
     settings-location: classpath:elasticsearch/tourist-spots-settings.json
     mappings-location: classpath:elasticsearch/tourist-spots-mappings.json
     retry-max-attempts: ${ELASTICSEARCH_SEARCH_RETRY_MAX_ATTEMPTS:3}
@@ -69,28 +69,3 @@ chat:
   question-analysis:
     result-size: ${CHAT_SEARCH_RESULT_SIZE:5}
     minimum-score: ${CHAT_SEARCH_MINIMUM_SCORE:0.1}
-
-llm:
-  openai:
-    enabled: ${OPENAI_ENABLED:false}
-    base-url: ${OPENAI_BASE_URL:https://api.openai.com/v1}
-    api-key: ${OPENAI_API_KEY:}
-    model: ${OPENAI_MODEL:gpt-5.6-sol}
-    reasoning-effort: ${OPENAI_REASONING_EFFORT:low}
-    max-output-tokens: ${OPENAI_MAX_OUTPUT_TOKENS:1200}
-    connect-timeout: ${OPENAI_CONNECT_TIMEOUT:3s}
-    response-timeout: ${OPENAI_RESPONSE_TIMEOUT:20s}
-    retry-max-attempts: ${OPENAI_RETRY_MAX_ATTEMPTS:3}
-    retry-initial-backoff: ${OPENAI_RETRY_INITIAL_BACKOFF:100ms}
-    retry-max-backoff: ${OPENAI_RETRY_MAX_BACKOFF:1s}
-
-stt:
-  max-file-size: ${STT_MAX_FILE_SIZE:26214400}
-  timeout: ${STT_TIMEOUT:20s}
-  openai:
-    enabled: ${STT_OPENAI_ENABLED:false}
-    base-url: ${STT_OPENAI_BASE_URL:https://api.openai.com/v1}
-    api-key: ${STT_OPENAI_API_KEY:}
-    model: ${STT_OPENAI_MODEL:gpt-4o-mini-transcribe}
-    language: ${STT_OPENAI_LANGUAGE:ko}
-    connect-timeout: ${STT_OPENAI_CONNECT_TIMEOUT:3s}

@@ -30,6 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 class OpenAiResponsesClientTest {
 
@@ -139,6 +140,26 @@ class OpenAiResponsesClientTest {
                     assertThat(exception.failureType()).isEqualTo(LlmFailureType.TIMEOUT);
                     assertThat(exception.retryable()).isTrue();
                     assertThat(exception.getMessage()).doesNotContain("test-api-key");
+                });
+    }
+
+    @Test
+    void classifiesTimeoutWrappedByResponseExtractionException() {
+        RestClient timeoutClient = RestClient.builder()
+                .requestFactory((uri, method) -> {
+                    throw new RestClientException(
+                            "Error while extracting response for type [java.lang.String]",
+                            new SocketTimeoutException("Read timed out")
+                    );
+                })
+                .build();
+        client = new OpenAiResponsesClient(timeout -> timeoutClient, new ObjectMapper(), properties);
+
+        assertThatThrownBy(() -> client.generate(request()))
+                .isInstanceOfSatisfying(LlmClientException.class, exception -> {
+                    assertThat(exception.failureType()).isEqualTo(LlmFailureType.TIMEOUT);
+                    assertThat(exception.retryable()).isTrue();
+                    assertThat(exception.getCause()).isInstanceOf(RestClientException.class);
                 });
     }
 

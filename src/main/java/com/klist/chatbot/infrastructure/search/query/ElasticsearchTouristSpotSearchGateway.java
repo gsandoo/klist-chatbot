@@ -23,6 +23,7 @@ import org.springframework.data.elasticsearch.core.SearchHit;
 import org.springframework.data.elasticsearch.core.SearchHits;
 import org.springframework.data.elasticsearch.core.geo.GeoPoint;
 import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
+import org.springframework.data.elasticsearch.core.query.FetchSourceFilterBuilder;
 
 public class ElasticsearchTouristSpotSearchGateway implements TouristSpotSearchGateway {
 
@@ -101,6 +102,9 @@ public class ElasticsearchTouristSpotSearchGateway implements TouristSpotSearchG
         NativeQueryBuilder builder = NativeQuery.builder()
                 .withQuery(Query.of(query -> query.bool(bool.build())))
                 .withPageable(PageRequest.of(0, criteria.size()))
+                .withSourceFilter(new FetchSourceFilterBuilder()
+                        .withExcludes("sourceModifiedAt")
+                        .build())
                 .withTrackTotalHits(true);
         if (criteria.minimumScore() != null) {
             builder.withMinScore(criteria.minimumScore());

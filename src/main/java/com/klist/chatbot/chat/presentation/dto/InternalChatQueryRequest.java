@@ -34,9 +34,11 @@ public record InternalChatQueryRequest(
         Integer timeoutMs
 ) {
 
-    private static final int DEFAULT_TIMEOUT_MS = 5000;
+    private static final int DEFAULT_TIMEOUT_MS = 30000;
 
     public InternalChatQueryRequest {
+        requestId = requestId == null ? UUID.randomUUID() : requestId;
+        userId = userId == null && sessionId != null ? sessionId : userId;
         context = context == null ? List.of() : List.copyOf(context);
     }
 

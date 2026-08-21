@@ -20,8 +20,12 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class InternalChatQueryService implements InternalChatQueryUseCase {
+
+    private static final Logger log = LoggerFactory.getLogger(InternalChatQueryService.class);
 
     private final ChatCompletionOrchestrator completionOrchestrator;
     private final LongSupplier nanoTime;
@@ -74,15 +78,31 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
                     traceId,
                     processingTime.toMillis()
             );
-            metrics.completed(completionResult, processingTime);
+            recordCompleted(completionResult, processingTime);
             return response;
         } catch (RuntimeException exception) {
-            metrics.failed(
+            recordFailed(
                     failureComponent(exception),
                     failureReason(exception),
                     elapsed(startedAt, nanoTime.getAsLong())
             );
             throw exception;
+        }
+    }
+
+    private void recordCompleted(ChatCompletionResult result, Duration processingTime) {
+        try {
+            metrics.completed(result, processingTime);
+        } catch (RuntimeException exception) {
+            log.warn("Completed chat metrics could not be recorded", exception);
+        }
+    }
+
+    private void recordFailed(String component, String reason, Duration processingTime) {
+        try {
+            metrics.failed(component, reason, processingTime);
+        } catch (RuntimeException exception) {
+            log.warn("Failed chat metrics could not be recorded", exception);
         }
     }
 

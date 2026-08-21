@@ -3,6 +3,7 @@ package com.klist.chatbot.chat.application;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -89,7 +90,7 @@ class InternalChatQueryServiceTest {
         ChatCompletionResult completionResult = ChatCompletionResult.noEvidence(
                 mock(ChatSearchResult.class)
         );
-        when(completionOrchestrator.complete(request.message(), Duration.ofMillis(5000)))
+        when(completionOrchestrator.complete(request.message(), Duration.ofMillis(30000)))
                 .thenReturn(completionResult);
         InternalChatQueryService service = new InternalChatQueryService(
                 completionOrchestrator,
@@ -152,7 +153,7 @@ class InternalChatQueryServiceTest {
                 "raw response detail",
                 null
         );
-        when(completionOrchestrator.complete(request.message(), Duration.ofMillis(5000)))
+        when(completionOrchestrator.complete(request.message(), Duration.ofMillis(30000)))
                 .thenThrow(cause);
         InternalChatQueryService service = new InternalChatQueryService(completionOrchestrator);
 
@@ -160,6 +161,55 @@ class InternalChatQueryServiceTest {
                 .isInstanceOf(ChatProcessingFailedException.class)
                 .hasCause(cause)
                 .hasMessageNotContaining("raw response detail");
+    }
+
+    @Test
+    void returnsSuccessfulResponseWhenCompletedMetricsRecordingFails() {
+        InternalChatQueryRequest request = request("서울 야경 명소를 추천해줘", 5000);
+        ChatTouristSpotEvidence evidence = evidence(1001L, "서울 전망대", 4.2f, null);
+        ChatGeneratedAnswer generatedAnswer = new ChatGeneratedAnswer(
+                "서울 전망대를 추천합니다.",
+                List.of(new ChatRecommendation(1001L, "야경을 볼 수 있습니다."))
+        );
+        ChatCompletionResult completionResult = completedResult(
+                List.of(evidence), generatedAnswer
+        );
+        ChatMetricsRecorder metrics = mock(ChatMetricsRecorder.class);
+        doThrow(new IllegalStateException("metrics backend unavailable"))
+                .when(metrics).completed(completionResult, Duration.ofMillis(5));
+        when(completionOrchestrator.complete(request.message(), Duration.ofMillis(5000)))
+                .thenReturn(completionResult);
+        InternalChatQueryService service = new InternalChatQueryService(
+                completionOrchestrator,
+                nanoTime(10_000_000L, 15_000_000L),
+                metrics
+        );
+
+        var response = service.query(request, TRACE_ID);
+
+        assertThat(response.status()).isEqualTo(ChatQueryStatus.COMPLETED);
+        assertThat(response.answer()).isEqualTo("서울 전망대를 추천합니다.");
+        verify(metrics).completed(completionResult, Duration.ofMillis(5));
+    }
+
+    @Test
+    void preservesProcessingFailureWhenFailedMetricsRecordingAlsoFails() {
+        InternalChatQueryRequest request = request("질문", 5000);
+        ChatMetricsRecorder metrics = mock(ChatMetricsRecorder.class);
+        IllegalStateException processingFailure = new IllegalStateException("processing failed");
+        when(completionOrchestrator.complete(request.message(), Duration.ofMillis(5000)))
+                .thenThrow(processingFailure);
+        doThrow(new IllegalStateException("metrics backend unavailable"))
+                .when(metrics).failed("chat", "unexpected", Duration.ofMillis(5));
+        InternalChatQueryService service = new InternalChatQueryService(
+                completionOrchestrator,
+                nanoTime(10_000_000L, 15_000_000L),
+                metrics
+        );
+
+        assertThatThrownBy(() -> service.query(request, TRACE_ID))
+                .isSameAs(processingFailure);
+        verify(metrics).failed("chat", "unexpected", Duration.ofMillis(5));
     }
 
     private static Stream<Arguments> llmFailures() {

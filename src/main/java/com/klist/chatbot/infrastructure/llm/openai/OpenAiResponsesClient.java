@@ -19,6 +19,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpStatusCodeException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 public class OpenAiResponsesClient implements LlmClient {
 
@@ -78,6 +79,8 @@ public class OpenAiResponsesClient implements LlmClient {
             throw toHttpException(exception);
         } catch (ResourceAccessException exception) {
             throw toResourceException(exception);
+        } catch (RestClientException exception) {
+            throw toRestClientException(exception);
         }
     }
 
@@ -214,6 +217,38 @@ public class OpenAiResponsesClient implements LlmClient {
                 null,
                 null,
                 true,
+                exception
+        );
+    }
+
+    private LlmClientException toRestClientException(RestClientException exception) {
+        if (hasCause(exception, SocketTimeoutException.class)
+                || hasCause(exception, HttpTimeoutException.class)) {
+            return new LlmClientException(
+                    LlmFailureType.TIMEOUT,
+                    "OpenAI response read timed out",
+                    null,
+                    null,
+                    true,
+                    exception
+            );
+        }
+        if (hasCause(exception, ConnectException.class)) {
+            return new LlmClientException(
+                    LlmFailureType.CONNECTION,
+                    "Unable to connect to OpenAI",
+                    null,
+                    null,
+                    true,
+                    exception
+            );
+        }
+        return new LlmClientException(
+                LlmFailureType.INVALID_RESPONSE,
+                "OpenAI response could not be extracted",
+                null,
+                null,
+                false,
                 exception
         );
     }

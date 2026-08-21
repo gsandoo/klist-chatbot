@@ -84,6 +84,34 @@ class InternalChatQueryControllerContractTest {
     }
 
     @Test
+    void acceptsClientRequestWithOnlySessionIdAndMessage() throws Exception {
+        when(chatQueryUseCase.query(any(), eq(TRACE_ID))).thenAnswer(invocation -> {
+            var request = invocation.getArgument(
+                    0,
+                    com.klist.chatbot.chat.presentation.dto.InternalChatQueryRequest.class
+            );
+            return new InternalChatQueryResponse(
+                    request.requestId(), "추천 결과", List.of(), TRACE_ID,
+                    ChatQueryStatus.COMPLETED, 10L
+            );
+        });
+
+        mockMvc.perform(post("/internal/chat/query")
+                        .header("X-Trace-Id", TRACE_ID)
+                        .header(InternalApiKeyAuthenticationFilter.HEADER_NAME, INTERNAL_API_KEY)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "sessionId": "3b086657-4887-49da-938e-23b1e0efd2b8",
+                                  "message": "서울에서 방문할 만한 관광지를 추천해줘"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requestId").isNotEmpty())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+    }
+
+    @Test
     void returnsValidationErrorWithTraceId() throws Exception {
         mockMvc.perform(post("/internal/chat/query")
                         .header("X-Trace-Id", TRACE_ID)

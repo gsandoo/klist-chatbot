@@ -63,6 +63,25 @@ class ChatQuestionAnalyzerTest {
     }
 
     @Test
+    void removesGenericTouristSpotRequestWordsForRegionOnlySearch() {
+        ChatQuestionAnalysis analysis = analyzer.analyze(
+                "서울에서 방문할 만한 관광지를 추천해줘"
+        );
+
+        assertThat(analysis.normalizedKeyword()).isNull();
+        assertThat(analysis.detectedRegion()).isEqualTo("서울");
+        assertThat(analysis.searchCriteria().areaCode()).isEqualTo("1");
+    }
+
+    @Test
+    void preservesSpecificKeywordWhileRemovingGenericTouristSpotWords() {
+        ChatQuestionAnalysis analysis = analyzer.analyze("서울 야경 명소 추천해줘");
+
+        assertThat(analysis.normalizedKeyword()).isEqualTo("야경");
+        assertThat(analysis.searchCriteria().areaCode()).isEqualTo("1");
+    }
+
+    @Test
     void usesConfiguredResultLimitAndMinimumScore() {
         properties.setResultSize(8);
         properties.setMinimumScore(0.5f);

@@ -45,7 +45,9 @@ public class ChatQuestionAnalyzer {
             Pattern.compile("소개\\s*(?:해|하여)?\\s*(?:줘|주세요)?"),
             Pattern.compile("어디(?:가|를|로|에)?"),
             Pattern.compile("가볼\\s*만한\\s*곳"),
-            Pattern.compile("갈\\s*만한\\s*곳")
+            Pattern.compile("갈\\s*만한\\s*곳"),
+            Pattern.compile("방문(?:할|하기)\\s*만한\\s*(?:곳|장소)?"),
+            Pattern.compile("(?:관광지|관광\\s*명소|명소)(?:를|을|가|이)?")
     );
 
     private final ChatQuestionAnalysisProperties properties;

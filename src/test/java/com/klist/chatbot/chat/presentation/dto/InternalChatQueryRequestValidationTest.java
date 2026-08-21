@@ -30,7 +30,20 @@ class InternalChatQueryRequestValidationTest {
         );
 
         assertThat(validator.validate(request)).isEmpty();
-        assertThat(request.effectiveTimeoutMs()).isEqualTo(5000);
+        assertThat(request.effectiveTimeoutMs()).isEqualTo(30000);
+    }
+
+    @Test
+    void generatesRequestIdAndUsesSessionIdForMissingUserId() {
+        InternalChatQueryRequest request = new InternalChatQueryRequest(
+                null, "3b086657-4887-49da-938e-23b1e0efd2b8", null,
+                "서울에서 방문할 만한 관광지를 추천해줘", null, null
+        );
+
+        assertThat(validator.validate(request)).isEmpty();
+        assertThat(request.requestId()).isNotNull();
+        assertThat(request.userId()).isEqualTo(request.sessionId());
+        assertThat(request.context()).isEmpty();
     }
 
     @Test
@@ -47,11 +60,11 @@ class InternalChatQueryRequestValidationTest {
     @Test
     void rejectsBlankIdentifiersAndMessage() {
         InternalChatQueryRequest request = new InternalChatQueryRequest(
-                null, " ", "", "\t", List.of(), 5000
+                REQUEST_ID, " ", "", "\t", List.of(), 5000
         );
 
         assertThat(violatedFields(request))
-                .containsExactlyInAnyOrder("requestId", "sessionId", "userId", "message");
+                .containsExactlyInAnyOrder("sessionId", "userId", "message");
     }
 
     @Test

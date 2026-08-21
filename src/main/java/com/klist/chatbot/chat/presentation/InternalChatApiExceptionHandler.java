@@ -26,6 +26,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 })
 public class InternalChatApiExceptionHandler {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(
+            InternalChatApiExceptionHandler.class
+    );
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     ResponseEntity<InternalApiErrorResponse> handleValidation(
             MethodArgumentNotValidException exception,
@@ -180,6 +184,7 @@ public class InternalChatApiExceptionHandler {
             HttpServletRequest request
     ) {
         String traceId = traceId(request);
+        log.error("Unexpected chatbot request failure. traceId={}", traceId, exception);
         return response(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 traceId,
