@@ -41,6 +41,12 @@ public class OpenAiSpeechToTextClient implements SpeechToTextClient {
 
     @Override
     public String transcribe(SpeechAudio audio, Duration timeout) {
+        return transcribe(audio, timeout, "ko");
+    }
+
+    @Override
+    public String transcribe(SpeechAudio audio, Duration timeout, String language) {
+        if (!java.util.Set.of("ko", "en").contains(language)) throw new IllegalArgumentException("language must be ko or en");
         Objects.requireNonNull(audio, "audio must not be null");
         Objects.requireNonNull(timeout, "timeout must not be null");
         if (!properties.isEnabled()) {
@@ -52,7 +58,7 @@ public class OpenAiSpeechToTextClient implements SpeechToTextClient {
                     .uri("/audio/transcriptions")
                     .header("Authorization", "Bearer " + properties.getApiKey())
                     .contentType(MediaType.MULTIPART_FORM_DATA)
-                    .body(parts(audio))
+                    .body(parts(audio, language))
                     .retrieve()
                     .body(TranscriptionResponse.class);
             return response == null ? null : response.text();
@@ -89,11 +95,11 @@ public class OpenAiSpeechToTextClient implements SpeechToTextClient {
                 .build();
     }
 
-    private MultiValueMap<String, Object> parts(SpeechAudio audio) {
+    private MultiValueMap<String, Object> parts(SpeechAudio audio, String language) {
         MultiValueMap<String, Object> parts = new LinkedMultiValueMap<>();
         parts.add("model", properties.getModel());
-        if (properties.getLanguage() != null && !properties.getLanguage().isBlank()) {
-            parts.add("language", properties.getLanguage());
+        if (language != null && !language.isBlank()) {
+            parts.add("language", language);
         }
         ByteArrayResource resource = new ByteArrayResource(audio.content()) {
             @Override

@@ -6,7 +6,7 @@ spring:
   application:
     name: klist-chatbot
   profiles:
-    active: ${SPRING_PROFILES_ACTIVE:dev}
+    active: ${SPRING_PROFILES_ACTIVE:cloud}
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -24,6 +24,8 @@ internal-api:
     key: ${INTERNAL_API_KEY:}
 
 tour-api:
+  language: ${TOUR_API_LANGUAGE:ko}
+  english-base-url: ${TOUR_API_ENGLISH_BASE_URL:https://apis.data.go.kr/B551011/EngService2}
   base-url: ${TOUR_API_BASE_URL:https://apis.data.go.kr/B551011/KorService2}
   service-key: ${TOUR_API_SERVICE_KEY:}
   mobile-os: ${TOUR_API_MOBILE_OS:ETC}
@@ -39,7 +41,7 @@ tour-api:
 search:
   tourist-spots:
     alias: tourist-spots
-    version: v2
+    version: ${TOURIST_SPOT_INDEX_VERSION:v2}
     settings-location: classpath:elasticsearch/tourist-spots-settings.json
     mappings-location: classpath:elasticsearch/tourist-spots-mappings.json
     retry-max-attempts: ${ELASTICSEARCH_SEARCH_RETRY_MAX_ATTEMPTS:3}

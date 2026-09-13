@@ -3,6 +3,9 @@
 관광 데이터를 PostgreSQL에 저장하고 Elasticsearch에서 검색한 결과를 기반으로 답변을 생성하는
 관광 챗봇 서버다.
 
+한국어·영어 요청, 음성 인식, 언어별 관광 데이터 적재 및 재색인 절차는
+[영어 지원 문서](src/docs/18_English_Support.md)를 참고한다. `language` 생략 시 기존 한국어 동작을 유지한다.
+
 ## Cloud Runtime
 
 운영 애플리케이션은 Docker 또는 Testcontainers에 의존하지 않는다. `cloud` 프로필에서 클라우드가

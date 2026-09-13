@@ -50,3 +50,4 @@ src/docs/*
 !src/docs/15_Backend_Chatbot_Connection_Validation.md
 !src/docs/16_Resilience_Validation_Report.md
 !src/docs/17_STT_Architecture.md
+!src/docs/18_English_Support.md

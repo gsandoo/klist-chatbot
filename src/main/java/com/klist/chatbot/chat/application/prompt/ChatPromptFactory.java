@@ -34,6 +34,11 @@ public class ChatPromptFactory {
             List<ChatConversationMessage> context,
             ChatEvidenceContext evidenceContext
     ) {
+        return prepare(question, context, evidenceContext, "ko");
+    }
+
+    public ChatPromptPreparation prepare(String question, List<ChatConversationMessage> context,
+            ChatEvidenceContext evidenceContext, String language) {
         if (question == null || question.isBlank()) {
             throw new IllegalArgumentException("question must not be blank");
         }
@@ -47,7 +52,7 @@ public class ChatPromptFactory {
         String contextJson = serialize(context, "conversation context");
         String evidenceJson = serialize(evidenceContext.touristSpots(), "chat evidence");
         String userMessage = """
-                아래 사용자 질문에 검색 근거만 사용해 한국어로 답변하세요.
+                아래 사용자 질문에 검색 근거만 사용해 지정된 응답 언어로 답변하세요.
 
                 <user_question>
                 %s
@@ -61,7 +66,11 @@ public class ChatPromptFactory {
                 %s
                 </search_evidence_json>
                 """.formatted(questionJson, contextJson, evidenceJson);
-        return ChatPromptPreparation.ready(new ChatPrompt(SYSTEM_MESSAGE, userMessage));
+        String responseLanguage = "en".equals(language)
+                ? "English. Write the answer and recommendation reasons in English."
+                : "Korean.";
+        return ChatPromptPreparation.ready(new ChatPrompt(
+                SYSTEM_MESSAGE + "\nResponse language: " + responseLanguage, userMessage));
     }
 
     private String serialize(Object value, String target) {

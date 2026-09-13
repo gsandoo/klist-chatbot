@@ -67,6 +67,16 @@ class OpenAiSpeechToTextClientTest {
     }
 
     @Test
+    void requestLanguageOverridesConfiguredKoreanLanguage() {
+        server.expect(requestTo(BASE_URL + "/audio/transcriptions"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("\r\n\r\nen\r\n")))
+                .andRespond(withSuccess("{\"text\":\"Recommend museums in Seoul\"}", MediaType.APPLICATION_JSON));
+        assertThat(client.transcribe(audio(), Duration.ofSeconds(5), "en"))
+                .isEqualTo("Recommend museums in Seoul");
+        server.verify();
+    }
+
+    @Test
     void classifiesProviderTimeoutAndFailureWithoutExposingApiKey() {
         server.expect(requestTo(BASE_URL + "/audio/transcriptions"))
                 .andRespond(withStatus(HttpStatus.GATEWAY_TIMEOUT));

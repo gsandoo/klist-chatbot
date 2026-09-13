@@ -54,12 +54,20 @@ public class ChatSearchOrchestrator {
             List<ChatConversationMessage> context,
             Duration timeout
     ) {
-        ChatQuestionAnalysis analysis = questionAnalyzer.analyze(question);
+        return search(question, context, timeout, "ko");
+    }
+
+    public ChatSearchResult search(String question, List<ChatConversationMessage> context,
+            Duration timeout, String language) {
+        ChatQuestionAnalysis analysis = "ko".equals(language)
+                ? questionAnalyzer.analyze(question) : questionAnalyzer.analyze(question, language);
         TouristSpotSearchResult searchResult = timeout == null
                 ? touristSpotRetriever.retrieve(analysis.searchCriteria())
                 : touristSpotRetriever.retrieve(analysis.searchCriteria(), timeout);
         ChatEvidenceContext evidenceContext = evidenceOrganizer.organize(searchResult);
-        ChatPromptPreparation promptPreparation = context.isEmpty()
+        ChatPromptPreparation promptPreparation = "en".equals(language)
+                ? promptFactory.prepare(analysis.originalQuestion(), context, evidenceContext, language)
+                : context.isEmpty()
                 ? promptFactory.prepare(analysis.originalQuestion(), evidenceContext)
                 : promptFactory.prepare(analysis.originalQuestion(), context, evidenceContext);
         return new ChatSearchResult(analysis, searchResult, evidenceContext, promptPreparation);

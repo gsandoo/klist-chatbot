@@ -117,6 +117,19 @@ class TourismRepositoryTest {
     }
 
     @Test
+    void sameContentIdCanExistInBothLanguages() {
+        TouristSpot korean = touristSpotRepository.save(touristSpot(264337L, "Korean fixture"));
+        TouristSpot english = touristSpotRepository.save(TouristSpot.builder()
+                .tourApiContentId(264337L).language("en").contentTypeId(76).name("Gyeongbokgung Palace")
+                .sourceModifiedAt(LocalDateTime.now()).lastSyncedAt(LocalDateTime.now()).build());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(touristSpotRepository.findByTourApiContentId(264337L).orElseThrow().getId()).isEqualTo(korean.getId());
+        assertThat(touristSpotRepository.findByTourApiContentIdAndLanguage(264337L, "en").orElseThrow().getId())
+                .isEqualTo(english.getId()).isNotEqualTo(korean.getId());
+    }
+
+    @Test
     void enforcesCategoryUniqueConstraint() {
         categoryRepository.save(category(12, "A01010400"));
 

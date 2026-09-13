@@ -89,7 +89,7 @@ public class ElasticsearchTouristSpotSearchGateway implements TouristSpotSearchG
     NativeQuery buildQuery(TouristSpotSearchCriteria criteria) {
         BoolQuery.Builder bool = new BoolQuery.Builder();
         if (criteria.hasKeyword()) {
-            bool.must(keywordQuery(criteria.keyword()));
+            bool.must(keywordQuery(criteria.keyword(), criteria.language()));
         } else {
             bool.must(Query.of(query -> query.matchAll(matchAll -> matchAll)));
         }
@@ -112,10 +112,12 @@ public class ElasticsearchTouristSpotSearchGateway implements TouristSpotSearchG
         return builder.build();
     }
 
-    private Query keywordQuery(String keyword) {
+    private Query keywordQuery(String keyword, String language) {
         Query multiMatch = Query.of(query -> query.multiMatch(multi -> multi
                 .query(keyword)
-                .fields(WEIGHTED_FIELDS)
+                .fields("en".equals(language)
+                        ? List.of("title.en^5", "address.en^3", "description.en^2", "openingHours.en", "admissionFee.en")
+                        : WEIGHTED_FIELDS)
                 .type(TextQueryType.CrossFields)
                 .minimumShouldMatch("75%")
         ));
@@ -132,6 +134,7 @@ public class ElasticsearchTouristSpotSearchGateway implements TouristSpotSearchG
 
     private List<Query> filters(TouristSpotSearchCriteria criteria) {
         List<Query> filters = new ArrayList<>();
+        addTerm(filters, "language", criteria.language());
         addLongTerm(filters, "region.regionId", criteria.regionId());
         addTerm(filters, "region.areaCode", criteria.areaCode());
         addTerm(filters, "region.sigunguCode", criteria.sigunguCode());

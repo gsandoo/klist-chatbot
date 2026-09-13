@@ -30,7 +30,7 @@ public class TouristSpotSearchDocumentMapper {
                 touristSpot.getOpeningHours(),
                 touristSpot.getAdmissionFee(),
                 touristSpot.getReservationUrl(),
-                touristSpot.getSourceModifiedAt()
+                touristSpot.getSourceModifiedAt(), touristSpot.getLanguage()
         );
     }
 

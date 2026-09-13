@@ -19,9 +19,17 @@ public class TourApiCollector {
             Set.of("12", "14", "15", "25", "28", "32", "38", "39");
 
     private final TourApiClient tourApiClient;
+    private final Set<String> supportedContentTypes;
 
     public TourApiCollector(TourApiClient tourApiClient) {
+        this(tourApiClient, "ko");
+    }
+
+    public TourApiCollector(TourApiClient tourApiClient, String language) {
         this.tourApiClient = tourApiClient;
+        if (!Set.of("ko", "en").contains(language)) throw new IllegalArgumentException("language must be ko or en");
+        this.supportedContentTypes = "en".equals(language)
+                ? Set.of("75", "76", "78", "79", "80", "82", "85") : SUPPORTED_CONTENT_TYPES;
     }
 
     public TourApiCollectResult collect(TourApiCollectRequest request) {
@@ -36,7 +44,7 @@ public class TourApiCollector {
         TourApiAreaBasedListItem areaItem = areaResult.value();
         String contentId = areaItem.contentid();
         String contentTypeId = areaItem.contenttypeid();
-        if (!SUPPORTED_CONTENT_TYPES.contains(contentTypeId)) {
+        if (!supportedContentTypes.contains(contentTypeId)) {
             return unsupportedContentType(contentId, contentTypeId, areaItem);
         }
 

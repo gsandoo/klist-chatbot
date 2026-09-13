@@ -10,6 +10,8 @@ public interface TouristSpotRepository {
 
     Optional<TouristSpot> findByTourApiContentId(Long tourApiContentId);
 
+    Optional<TouristSpot> findByTourApiContentIdAndLanguage(Long tourApiContentId, String language);
+
     TouristSpot save(TouristSpot touristSpot);
 
     List<TouristSpot> findPageAfterId(long lastSeenId, int pageSize);

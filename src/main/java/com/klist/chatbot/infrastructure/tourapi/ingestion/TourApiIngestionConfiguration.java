@@ -16,13 +16,14 @@ import org.springframework.context.annotation.Profile;
 public class TourApiIngestionConfiguration {
 
     @Bean
-    TourApiCollector tourApiCollector(TourApiClient tourApiClient) {
-        return new TourApiCollector(tourApiClient);
+    TourApiCollector tourApiCollector(TourApiClient tourApiClient,
+            com.klist.chatbot.infrastructure.tourapi.client.TourApiProperties properties) {
+        return new TourApiCollector(tourApiClient, properties.getLanguage());
     }
 
     @Bean
-    TourApiTouristSpotNormalizer tourApiTouristSpotNormalizer() {
-        return new TourApiTouristSpotNormalizer();
+    TourApiTouristSpotNormalizer tourApiTouristSpotNormalizer(com.klist.chatbot.infrastructure.tourapi.client.TourApiProperties properties) {
+        return new TourApiTouristSpotNormalizer(properties.getLanguage());
     }
 
     @Bean
@@ -43,7 +44,6 @@ public class TourApiIngestionConfiguration {
     }
 
     @Bean
-    @Profile("dev")
     @ConditionalOnProperty(prefix = "tour-api.ingestion", name = "enabled", havingValue = "true")
     TourApiDevIngestionRunner tourApiDevIngestionRunner(
             TourApiIngestionService ingestionService,

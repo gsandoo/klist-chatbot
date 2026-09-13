@@ -29,7 +29,7 @@ import lombok.NoArgsConstructor;
         uniqueConstraints = {
                 @UniqueConstraint(
                         name = "uk_tourist_spot_tour_api_content_id",
-                        columnNames = "tour_api_content_id"
+                        columnNames = {"language", "tour_api_content_id"}
                 )
         }
 )
@@ -43,6 +43,9 @@ public class TouristSpot extends BaseTimeEntity {
 
     @Column(name = "tour_api_content_id", nullable = false)
     private Long tourApiContentId;
+
+    @Column(name = "language", nullable = false, length = 2)
+    private String language = "ko";
 
     @Column(name = "content_type_id", nullable = false)
     private Integer contentTypeId;
@@ -128,6 +131,7 @@ public class TouristSpot extends BaseTimeEntity {
     @Builder
     private TouristSpot(
             Long tourApiContentId,
+            String language,
             Integer contentTypeId,
             Long categoryId,
             Long regionId,
@@ -157,6 +161,7 @@ public class TouristSpot extends BaseTimeEntity {
             LocalDateTime lastSyncedAt
     ) {
         this.tourApiContentId = tourApiContentId;
+        this.language = language == null ? "ko" : language;
         this.contentTypeId = contentTypeId;
         this.categoryId = categoryId;
         this.regionId = regionId;

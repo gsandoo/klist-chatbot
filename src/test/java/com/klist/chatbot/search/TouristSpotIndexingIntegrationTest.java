@@ -57,6 +57,7 @@ class TouristSpotIndexingIntegrationTest {
     @DynamicPropertySource
     static void elasticsearchProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.elasticsearch.uris", ELASTICSEARCH::getHttpHostAddress);
+        registry.add("search.tourist-spots.version", () -> "v1");
     }
 
     @Autowired
@@ -77,6 +78,28 @@ class TouristSpotIndexingIntegrationTest {
     @BeforeEach
     void initializeIndex() {
         indexManager.initialize();
+    }
+
+    @Test
+    void englishAndKoreanDocumentsNeverCrossLanguageFilters() {
+        TouristSpotSearchDocument english = new TouristSpotSearchDocument(990001L, "Gyeongbokgung Palace",
+                "A historic royal palace", "Seoul", null, null, null, null, null, null, null, null, null, "en");
+        TouristSpotSearchDocument korean = new TouristSpotSearchDocument(990002L, "Gyeongbokgung Palace",
+                "A Korean language fixture", "Seoul", null, null, null, null, null, null, null, null, null, "ko");
+        operations.save(english, IndexCoordinates.of("tourist-spots"));
+        operations.save(korean, IndexCoordinates.of("tourist-spots"));
+        operations.indexOps(IndexCoordinates.of("tourist-spots")).refresh();
+        for (String language : List.of("ko", "en")) {
+            var result = searchGateway.search(new TouristSpotSearchCriteria("Gyeongbokgung Palace", null, null,
+                    null, null, null, null, null, null, null, null, null, 50, null, language));
+            long expected = "en".equals(language) ? 990001L : 990002L;
+            long excluded = "en".equals(language) ? 990002L : 990001L;
+            assertThat(result.evidence()).extracting(evidence -> evidence.touristSpotId())
+                    .contains(expected).doesNotContain(excluded);
+        }
+        operations.delete("990001", IndexCoordinates.of("tourist-spots"));
+        operations.delete("990002", IndexCoordinates.of("tourist-spots"));
+        operations.indexOps(IndexCoordinates.of("tourist-spots")).refresh();
     }
 
     @Test

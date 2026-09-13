@@ -11,6 +11,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TourApiTouristSpotNormalizer {
+    private final String language;
+
+    public TourApiTouristSpotNormalizer() { this("ko"); }
+    public TourApiTouristSpotNormalizer(String language) {
+        if (!java.util.Set.of("ko", "en").contains(language)) throw new IllegalArgumentException("language must be ko or en");
+        this.language = language;
+    }
 
     public TourApiMappingResult<TouristSpotImportData> normalize(
             TourApiAreaBasedListItem listItem,
@@ -44,7 +51,7 @@ public class TourApiTouristSpotNormalizer {
 
         TourApiIntroFieldPolicy policy = null;
         if (contentTypeId != null) {
-            policy = TourApiIntroFieldPolicy.find(contentTypeId).orElse(null);
+            policy = TourApiIntroFieldPolicy.find(contentTypeId, language).orElse(null);
             if (policy == null) {
                 issues.add(issue(TourApiMappingIssueCode.UNSUPPORTED_CONTENT_TYPE_ID,
                         "contenttypeid", "Unsupported TourAPI contentTypeId: " + contentTypeId));
@@ -107,7 +114,7 @@ public class TourApiTouristSpotNormalizer {
                 clean(listItem == null ? null : listItem.sigungucode()),
                 clean(regionCodeItem == null ? null : regionCodeItem.name()),
                 clean(listItem == null ? null : listItem.lDongRegnCd()),
-                clean(listItem == null ? null : listItem.lDongSignguCd())
+                clean(listItem == null ? null : listItem.lDongSignguCd()), language
         );
         return TourApiMappingResult.success(data, issues);
     }

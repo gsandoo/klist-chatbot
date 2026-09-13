@@ -8,6 +8,9 @@ public class TourApiProperties {
 
     private String baseUrl = "https://apis.data.go.kr/B551011/KorService2";
     private String serviceKey;
+    private String language = "ko";
+    private String englishBaseUrl = "https://apis.data.go.kr/B551011/EngService2";
+
     private String mobileOs = "ETC";
     private String mobileApp = "klist-chatbot";
     private String responseType = "json";
@@ -18,8 +21,27 @@ public class TourApiProperties {
     private Duration retryInitialBackoff = Duration.ofMillis(200);
     private Duration retryMaxBackoff = Duration.ofSeconds(2);
 
+    public String getLanguage() {
+        return language;
+    }
+
+    public void setLanguage(String language) {
+        if (!java.util.Set.of("ko", "en").contains(language)) {
+            throw new IllegalArgumentException("tour-api.language must be ko or en");
+        }
+        this.language = language;
+    }
+
+    public String getEnglishBaseUrl() {
+        return englishBaseUrl;
+    }
+
+    public void setEnglishBaseUrl(String englishBaseUrl) {
+        this.englishBaseUrl = englishBaseUrl;
+    }
+
     public String getBaseUrl() {
-        return baseUrl;
+        return "en".equals(language) ? englishBaseUrl : baseUrl;
     }
 
     public void setBaseUrl(String baseUrl) {

@@ -65,6 +65,44 @@ public record TouristSpotSearchDocument(
         String reservationUrl,
 
         @Field(type = FieldType.Date, format = DateFormat.date_hour_minute_second)
-        LocalDateTime sourceModifiedAt
+        LocalDateTime sourceModifiedAt,
+        @Field(type = FieldType.Keyword) String language
 ) {
+    public TouristSpotSearchDocument {
+        language = language == null ? "ko" : language;
+    }
+
+    public TouristSpotSearchDocument(
+            Long touristSpotId,
+            String title,
+            String description,
+            String address,
+            TouristSpotSearchRegion region,
+            TouristSpotSearchCategory category,
+            GeoPoint coordinates,
+            String imageUrl,
+            String phoneNumber,
+            String openingHours,
+            String admissionFee,
+            String reservationUrl,
+            LocalDateTime sourceModifiedAt
+    ) {
+        this(
+                touristSpotId,
+                title,
+                description,
+                address,
+                region,
+                category,
+                coordinates,
+                imageUrl,
+                phoneNumber,
+                openingHours,
+                admissionFee,
+                reservationUrl,
+                sourceModifiedAt,
+                "ko"
+        );
+    }
+
 }

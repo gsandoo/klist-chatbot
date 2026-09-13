@@ -203,6 +203,11 @@ components:
         - sessionId
         - message
       properties:
+        language:
+          type: string
+          enum: [ko, en]
+          default: ko
+          description: 검색 데이터와 답변 언어. 생략하거나 null이면 ko.
         requestId:
           type: string
           format: uuid
@@ -238,6 +243,11 @@ components:
         - sessionId
         - userId
       properties:
+        language:
+          type: string
+          enum: [ko, en]
+          default: ko
+          description: STT, 검색 데이터 및 답변에 공통으로 적용할 언어.
         requestId:
           type: string
           format: uuid
