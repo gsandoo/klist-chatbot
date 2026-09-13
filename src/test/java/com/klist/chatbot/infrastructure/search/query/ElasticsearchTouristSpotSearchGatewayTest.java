@@ -35,6 +35,24 @@ class ElasticsearchTouristSpotSearchGatewayTest {
             new ElasticsearchTouristSpotSearchGateway(operations, properties());
 
     @Test
+    void filtersBothLanguagesAndUsesEnglishAnalyzerFields() {
+        TouristSpotSearchCriteria english = new TouristSpotSearchCriteria("palace", null, null, null,
+                null, null, null, null, null, null, null, null, 5, null, "en");
+        var query = gateway.buildQuery(english).getQuery().bool();
+        assertThat(query.filter()).singleElement().satisfies(filter -> {
+            assertThat(filter.term().field()).isEqualTo("language");
+            assertThat(filter.term().value().stringValue()).isEqualTo("en");
+        });
+        assertThat(query.toString()).contains("title.en^5", "address.en^3");
+        assertThat(gateway.buildQuery(criteria()).getQuery().bool().filter())
+                .anySatisfy(filter -> {
+                    assertThat(filter.isTerm()).isTrue();
+                    assertThat(filter.term().field()).isEqualTo("language");
+                    assertThat(filter.term().value().stringValue()).isEqualTo("ko");
+                });
+    }
+
+    @Test
     @SuppressWarnings("unchecked")
     void buildsWeightedKeywordFiltersDistanceLimitAndMinimumScore() {
         SearchHits<TouristSpotSearchDocument> hits = mock(SearchHits.class);

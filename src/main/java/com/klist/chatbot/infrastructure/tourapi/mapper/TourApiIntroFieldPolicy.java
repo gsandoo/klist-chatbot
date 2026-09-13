@@ -93,6 +93,21 @@ enum TourApiIntroFieldPolicy {
         this.contentTypeId = contentTypeId;
     }
 
+    static Optional<TourApiIntroFieldPolicy> find(Integer contentTypeId, String language) {
+        if (!"en".equals(language)) return find(contentTypeId);
+        if (contentTypeId == null) return Optional.empty();
+        return switch (contentTypeId) {
+            case 76 -> Optional.of(TOURIST_ATTRACTION);
+            case 78 -> Optional.of(CULTURAL_FACILITY);
+            case 85 -> Optional.of(EVENT);
+            case 75 -> Optional.of(LEPORTS);
+            case 80 -> Optional.of(LODGING);
+            case 79 -> Optional.of(SHOPPING);
+            case 82 -> Optional.of(RESTAURANT);
+            default -> Optional.empty();
+        };
+    }
+
     static Optional<TourApiIntroFieldPolicy> find(Integer contentTypeId) {
         if (contentTypeId == null) {
             return Optional.empty();

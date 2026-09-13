@@ -8,7 +8,7 @@ import org.springframework.data.domain.Pageable;
 
 interface TouristSpotJpaRepository extends JpaRepository<TouristSpot, Long> {
 
-    Optional<TouristSpot> findByTourApiContentId(Long tourApiContentId);
+    Optional<TouristSpot> findByTourApiContentIdAndLanguage(Long tourApiContentId, String language);
 
     List<TouristSpot> findByIdGreaterThanOrderByIdAsc(Long id, Pageable pageable);
 }

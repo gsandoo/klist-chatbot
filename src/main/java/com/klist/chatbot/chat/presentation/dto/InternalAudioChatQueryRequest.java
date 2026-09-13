@@ -27,10 +27,29 @@ public record InternalAudioChatQueryRequest(
 
         @Min(100)
         @Max(30000)
-        Integer timeoutMs
+        Integer timeoutMs,
+        @jakarta.validation.constraints.Pattern(regexp = "ko|en") String language
 ) {
+    public InternalAudioChatQueryRequest(
+            UUID requestId,
+            String sessionId,
+            String userId,
+            List<ChatContextMessage> context,
+            Integer timeoutMs
+    ) {
+        this(
+                requestId,
+                sessionId,
+                userId,
+                context,
+                timeoutMs,
+                "ko"
+        );
+    }
+
 
     public InternalAudioChatQueryRequest {
+        language = language == null ? "ko" : language;
         context = context == null ? List.of() : List.copyOf(context);
     }
 
@@ -41,7 +60,7 @@ public record InternalAudioChatQueryRequest(
                 userId,
                 transcription,
                 context,
-                timeoutMs
+                timeoutMs, language
         );
     }
 }

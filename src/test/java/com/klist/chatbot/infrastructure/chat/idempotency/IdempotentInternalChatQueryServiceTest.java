@@ -125,6 +125,18 @@ class IdempotentInternalChatQueryServiceTest {
         verifyNoInteractions(delegate);
     }
 
+    @Test
+    void changingOnlyLanguageCannotReuseCachedAnswer() {
+        InternalChatQueryRequest original = request("Gyeongbokgung Palace");
+        when(delegate.query(original, "trace-first")).thenReturn(response("trace-first"));
+        service.query(original, "trace-first");
+        InternalChatQueryRequest english = new InternalChatQueryRequest(original.requestId(), original.sessionId(),
+                original.userId(), original.message(), original.context(), original.timeoutMs(), "en");
+        assertThatThrownBy(() -> service.query(english, "trace-second"))
+                .isInstanceOf(ChatRequestIdConflictException.class);
+        verify(delegate, times(1)).query(any(), anyString());
+    }
+
     private String fingerprintFromFirstFailedExecution(
             InternalChatQueryRequest request,
             String processingKey

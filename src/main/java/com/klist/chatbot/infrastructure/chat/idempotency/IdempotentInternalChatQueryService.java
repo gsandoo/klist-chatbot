@@ -150,7 +150,7 @@ public class IdempotentInternalChatQueryService implements InternalChatQueryUseC
 
     private String fingerprint(InternalChatQueryRequest request) {
         FingerprintSource source = new FingerprintSource(
-                request.sessionId(), request.userId(), request.message(), request.context()
+                request.sessionId(), request.userId(), request.message(), request.context(), request.language()
         );
         try {
             byte[] serialized = objectMapper.writeValueAsBytes(source);
@@ -181,7 +181,8 @@ public class IdempotentInternalChatQueryService implements InternalChatQueryUseC
             String sessionId,
             String userId,
             String message,
-            java.util.List<com.klist.chatbot.chat.presentation.dto.ChatContextMessage> context
+            java.util.List<com.klist.chatbot.chat.presentation.dto.ChatContextMessage> context,
+            String language
     ) {
     }
 

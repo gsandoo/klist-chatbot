@@ -367,6 +367,11 @@ class TouristSpotImportServiceTest {
         }
 
         @Override
+        public Optional<TouristSpot> findByTourApiContentIdAndLanguage(Long contentId, String language) {
+            return findByTourApiContentId(contentId).filter(spot -> language.equals(spot.getLanguage()));
+        }
+
+        @Override
         public Optional<TouristSpot> findById(Long id) {
             return Optional.ofNullable(saved).filter(spot -> id.equals(spot.getId()));
         }

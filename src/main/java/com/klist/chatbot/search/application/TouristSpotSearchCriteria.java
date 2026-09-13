@@ -14,12 +14,50 @@ public record TouristSpotSearchCriteria(
         Double longitude,
         Double radiusKm,
         int size,
-        Float minimumScore
+        Float minimumScore,
+        String language
 ) {
+    public TouristSpotSearchCriteria(
+            String keyword,
+            Long regionId,
+            String areaCode,
+            String sigunguCode,
+            Integer contentTypeId,
+            Long categoryId,
+            String largeCategoryCode,
+            String middleCategoryCode,
+            String smallCategoryCode,
+            Double latitude,
+            Double longitude,
+            Double radiusKm,
+            int size,
+            Float minimumScore
+    ) {
+        this(
+                keyword,
+                regionId,
+                areaCode,
+                sigunguCode,
+                contentTypeId,
+                categoryId,
+                largeCategoryCode,
+                middleCategoryCode,
+                smallCategoryCode,
+                latitude,
+                longitude,
+                radiusKm,
+                size,
+                minimumScore,
+                "ko"
+        );
+    }
+
 
     private static final int MAX_SIZE = 50;
 
     public TouristSpotSearchCriteria {
+        language = language == null ? "ko" : language;
+        if (!java.util.Set.of("ko", "en").contains(language)) throw new IllegalArgumentException("language must be ko or en");
         keyword = trimToNull(keyword);
         areaCode = trimToNull(areaCode);
         sigunguCode = trimToNull(sigunguCode);

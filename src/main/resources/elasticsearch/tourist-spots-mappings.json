@@ -1,6 +1,7 @@
 {
   "dynamic": "strict",
   "properties": {
+    "language": { "type": "keyword" },
     "touristSpotId": {
       "type": "long"
     },
@@ -9,6 +10,7 @@
       "analyzer": "korean_index",
       "search_analyzer": "korean_search",
       "fields": {
+        "en": { "type": "text", "analyzer": "english" },
         "keyword": {
           "type": "keyword",
           "ignore_above": 256
@@ -18,13 +20,17 @@
     "description": {
       "type": "text",
       "analyzer": "korean_index",
-      "search_analyzer": "korean_search"
+      "search_analyzer": "korean_search",
+      "fields": {
+        "en": { "type": "text", "analyzer": "english" }
+      }
     },
     "address": {
       "type": "text",
       "analyzer": "korean_index",
       "search_analyzer": "korean_search",
       "fields": {
+        "en": { "type": "text", "analyzer": "english" },
         "keyword": {
           "type": "keyword",
           "ignore_above": 512
@@ -85,12 +91,18 @@
     "openingHours": {
       "type": "text",
       "analyzer": "korean_index",
-      "search_analyzer": "korean_search"
+      "search_analyzer": "korean_search",
+      "fields": {
+        "en": { "type": "text", "analyzer": "english" }
+      }
     },
     "admissionFee": {
       "type": "text",
       "analyzer": "korean_index",
-      "search_analyzer": "korean_search"
+      "search_analyzer": "korean_search",
+      "fields": {
+        "en": { "type": "text", "analyzer": "english" }
+      }
     },
     "reservationUrl": {
       "type": "keyword",

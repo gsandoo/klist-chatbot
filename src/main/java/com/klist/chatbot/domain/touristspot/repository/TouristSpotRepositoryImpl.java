@@ -20,7 +20,12 @@ public class TouristSpotRepositoryImpl implements TouristSpotRepository {
 
     @Override
     public Optional<TouristSpot> findByTourApiContentId(Long tourApiContentId) {
-        return touristSpotJpaRepository.findByTourApiContentId(tourApiContentId);
+        return touristSpotJpaRepository.findByTourApiContentIdAndLanguage(tourApiContentId, "ko");
+    }
+
+    @Override
+    public Optional<TouristSpot> findByTourApiContentIdAndLanguage(Long tourApiContentId, String language) {
+        return touristSpotJpaRepository.findByTourApiContentIdAndLanguage(tourApiContentId, language);
     }
 
     @Override

@@ -31,12 +31,33 @@ public record InternalChatQueryRequest(
 
         @Min(100)
         @Max(30000)
-        Integer timeoutMs
+        Integer timeoutMs,
+        @jakarta.validation.constraints.Pattern(regexp = "ko|en") String language
 ) {
+    public InternalChatQueryRequest(
+            UUID requestId,
+            String sessionId,
+            String userId,
+            String message,
+            List<ChatContextMessage> context,
+            Integer timeoutMs
+    ) {
+        this(
+                requestId,
+                sessionId,
+                userId,
+                message,
+                context,
+                timeoutMs,
+                "ko"
+        );
+    }
+
 
     private static final int DEFAULT_TIMEOUT_MS = 30000;
 
     public InternalChatQueryRequest {
+        language = language == null ? "ko" : language;
         requestId = requestId == null ? UUID.randomUUID() : requestId;
         userId = userId == null && sessionId != null ? sessionId : userId;
         context = context == null ? List.of() : List.copyOf(context);

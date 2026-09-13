@@ -114,7 +114,7 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
     ) {
         if (completionResult.status() == ChatCompletionStatus.NO_EVIDENCE) {
             ChatFallbackResponse fallback = ChatFallbackResponses.noResult(
-                    completionResult.searchResult().questionAnalysis()
+                    completionResult.searchResult().questionAnalysis(), request.language()
             );
             return new InternalChatQueryResponse(
                     request.requestId(),
@@ -129,14 +129,14 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
         if (completionResult.status() == ChatCompletionStatus.UNSUPPORTED) {
             return fallbackResponse(
                     request, traceId, processingTimeMs, ChatQueryStatus.UNSUPPORTED,
-                    ChatFallbackResponses.unsupported()
+                    ChatFallbackResponses.unsupported(request.language())
             );
         }
         if (completionResult.status() == ChatCompletionStatus.CLARIFICATION_REQUIRED) {
             return fallbackResponse(
                     request, traceId, processingTimeMs,
                     ChatQueryStatus.CLARIFICATION_REQUIRED,
-                    ChatFallbackResponses.clarificationRequired()
+                    ChatFallbackResponses.clarificationRequired(request.language())
             );
         }
         ChatGeneratedAnswer generatedAnswer = completionResult.generatedAnswer();
@@ -167,6 +167,11 @@ public class InternalChatQueryService implements InternalChatQueryUseCase {
     private ChatCompletionResult complete(InternalChatQueryRequest request) {
         try {
             Duration timeout = Duration.ofMillis(request.effectiveTimeoutMs());
+            if ("en".equals(request.language())) {
+                return completionOrchestrator.complete(request.message(), request.context().stream()
+                        .map(message -> new ChatConversationMessage(message.role().name(), message.content()))
+                        .toList(), timeout, request.language());
+            }
             if (request.context().isEmpty()) {
                 return completionOrchestrator.complete(request.message(), timeout);
             }

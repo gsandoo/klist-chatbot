@@ -49,8 +49,11 @@ public class TouristSpotImportService implements TouristSpotImporter {
             );
         }
 
-        return touristSpotRepository.findByTourApiContentId(data.tourApiContentId())
-                .map(existing -> updateExisting(existing, data, warnings))
+        var existing = "ko".equals(data.language())
+                ? touristSpotRepository.findByTourApiContentId(data.tourApiContentId())
+                : touristSpotRepository.findByTourApiContentIdAndLanguage(data.tourApiContentId(), data.language());
+        return existing
+                .map(spot -> updateExisting(spot, data, warnings))
                 .orElseGet(() -> createNew(data, warnings));
     }
 
@@ -68,6 +71,7 @@ public class TouristSpotImportService implements TouristSpotImporter {
         RegionResolution region = resolveRegion(data, warnings);
         TouristSpot touristSpot = TouristSpot.builder()
                 .tourApiContentId(data.tourApiContentId())
+                .language(data.language())
                 .contentTypeId(data.contentTypeId())
                 .categoryId(category.id())
                 .regionId(region.id())

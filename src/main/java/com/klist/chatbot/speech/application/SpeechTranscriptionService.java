@@ -30,8 +30,14 @@ public class SpeechTranscriptionService {
     }
 
     public String transcribe(SpeechAudio audio) {
+        return transcribe(audio, "ko");
+    }
+
+    public String transcribe(SpeechAudio audio, String language) {
         validate(audio);
-        String text = client.transcribe(audio, properties.getTimeout());
+        String text = "ko".equals(language)
+                ? client.transcribe(audio, properties.getTimeout())
+                : client.transcribe(audio, properties.getTimeout(), language);
         if (text == null || text.isBlank()) {
             throw new SpeechToTextException(
                     SpeechToTextFailureType.EMPTY_RESULT,

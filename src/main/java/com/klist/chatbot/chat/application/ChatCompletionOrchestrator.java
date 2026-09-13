@@ -79,6 +79,11 @@ public class ChatCompletionOrchestrator {
             List<ChatConversationMessage> context,
             Duration timeout
     ) {
+        return complete(question, context, timeout, "ko");
+    }
+
+    public ChatCompletionResult complete(String question, List<ChatConversationMessage> context,
+            Duration timeout, String language) {
         ChatQuestionDisposition disposition = dispositionClassifier.classify(question);
         if (disposition == ChatQuestionDisposition.UNSUPPORTED) {
             return ChatCompletionResult.unsupported();
@@ -87,7 +92,9 @@ public class ChatCompletionOrchestrator {
             return ChatCompletionResult.clarificationRequired();
         }
         ChatProcessingDeadline deadline = new ChatProcessingDeadline(timeout, nanoTime);
-        ChatSearchResult searchResult = context.isEmpty()
+        ChatSearchResult searchResult = "en".equals(language)
+                ? searchOrchestrator.search(question, context, timeout, language)
+                : context.isEmpty()
                 ? searchOrchestrator.search(question, List.of(), timeout)
                 : searchOrchestrator.search(question, context, timeout);
         Duration remainingTimeout = deadline.remaining("search");

@@ -40,7 +40,10 @@ public class InternalAudioChatQueryController {
             @RequestPart("audio") MultipartFile audio,
             HttpServletRequest servletRequest
     ) {
-        String transcription = transcriptionService.transcribe(toSpeechAudio(audio));
+        SpeechAudio speechAudio = toSpeechAudio(audio);
+        String transcription = "ko".equals(request.language())
+                ? transcriptionService.transcribe(speechAudio)
+                : transcriptionService.transcribe(speechAudio, request.language());
         String traceId = TraceIdResolver.resolve(servletRequest);
         InternalChatQueryResponse response = chatQueryUseCase.query(
                 request.toChatRequest(transcription),

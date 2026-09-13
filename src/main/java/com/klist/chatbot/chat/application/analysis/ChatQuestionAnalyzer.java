@@ -96,6 +96,43 @@ public class ChatQuestionAnalyzer {
         );
     }
 
+    public ChatQuestionAnalysis analyze(String question, String language) {
+        if ("ko".equals(language)) return analyze(question);
+        if (!"en".equals(language)) throw new IllegalArgumentException("language must be ko or en");
+        if (question == null || question.isBlank()) throw new IllegalArgumentException("question must not be blank");
+        properties.validate();
+        String original = normalizeWhitespace(question);
+        String keyword = original.toLowerCase(java.util.Locale.ROOT);
+        Integer contentType = null;
+        List<ContentTypeRule> types = List.of(
+                contentType(78, "museums", "museum", "galleries", "gallery"),
+                contentType(85, "festivals", "festival"),
+                contentType(80, "hotels", "hotel", "accommodation", "resorts", "resort"),
+                contentType(82, "restaurants", "restaurant", "cafes", "cafe"),
+                contentType(79, "shopping"),
+                contentType(75, "surfing", "skiing", "rafting"));
+        for (ContentTypeRule type : types) {
+            for (String term : type.keywords()) {
+                if (Pattern.compile("\\b" + term + "\\b").matcher(keyword).find()) {
+                    contentType = type.contentTypeId();
+                    keyword = keyword.replaceAll("\\b" + term + "\\b", " ");
+                    break;
+                }
+            }
+            if (contentType != null) break;
+        }
+        // Keep location names in the text: EngService2 may omit legacy area codes.
+        keyword = keyword.replaceAll("\\b(places to visit|things to do|tell me about|tell me|can you|could you|would you|opening hours|admission fees?|entry fees?|how much does|when does|when is)\\b", " ")
+                .replaceAll("\\b(recommend|recommendations|suggest|suggestions|find|show|please|me|some|the|a|an|in|near|around|of|to|visit|attractions|attraction|tourist|best|good|what|are|is|where|and|open|close|cost)\\b", " ")
+                .replaceAll("[?!.]+", " ");
+        keyword = normalizeWhitespace(keyword);
+        if (keyword.isBlank()) keyword = contentType == null ? original : null;
+        TouristSpotSearchCriteria criteria = new TouristSpotSearchCriteria(keyword, null, null, null,
+                contentType, null, null, null, null, null, null, null,
+                properties.getResultSize(), properties.getMinimumScore(), language);
+        return new ChatQuestionAnalysis(original, keyword, null, contentType, criteria);
+    }
+
     private String normalizeKeyword(String question, Match<RegionRule> regionMatch) {
         String keyword = question;
         if (regionMatch != null) {

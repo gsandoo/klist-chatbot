@@ -8,6 +8,24 @@ final class ChatFallbackResponses {
     private ChatFallbackResponses() {
     }
 
+    static ChatFallbackResponse noResult(ChatQuestionAnalysis analysis, String language) {
+        return "en".equals(language) ? new ChatFallbackResponse(
+                "I could not find matching tourism information. Try a broader location or another attraction type.",
+                List.of("Recommend places to visit in Seoul", "Find restaurants in Busan")) : noResult(analysis);
+    }
+
+    static ChatFallbackResponse unsupported(String language) {
+        return "en".equals(language) ? new ChatFallbackResponse(
+                "I can help with tourism information and travel recommendations in Korea.",
+                List.of("Recommend places to visit in Seoul")) : unsupported();
+    }
+
+    static ChatFallbackResponse clarificationRequired(String language) {
+        return "en".equals(language) ? new ChatFallbackResponse(
+                "Which location and type of attraction would you like to explore?",
+                List.of("Recommend museums in Seoul")) : clarificationRequired();
+    }
+
     static ChatFallbackResponse noResult(ChatQuestionAnalysis analysis) {
         return new ChatFallbackResponse(
                 ChatNoResultGuidance.message(analysis),

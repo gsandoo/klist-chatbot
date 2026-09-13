@@ -159,6 +159,18 @@ class CachingTouristSpotSearchGatewayTest {
         verify(redisTemplate, never()).opsForValue();
     }
 
+    @Test
+    void identicalKeywordsInDifferentLanguagesUseDifferentCacheKeys() {
+        when(delegate.search(org.mockito.ArgumentMatchers.any())).thenReturn(result());
+        var gateway = gateway();
+        gateway.search(criteria("palace"));
+        gateway.search(new TouristSpotSearchCriteria("palace", null, null, null, null, null, null,
+                null, null, null, null, null, 5, 0.1f, "en"));
+        ArgumentCaptor<String> keys = ArgumentCaptor.forClass(String.class);
+        verify(valueOperations, times(2)).get(keys.capture());
+        assertThat(keys.getAllValues()).doesNotHaveDuplicates();
+    }
+
     private CachingTouristSpotSearchGateway gateway() {
         return new CachingTouristSpotSearchGateway(
                 delegate, redisTemplate, objectMapper, properties
